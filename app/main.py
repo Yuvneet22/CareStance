@@ -283,11 +283,14 @@ async def reset_password(
 @app.get("/login/google")
 async def login_google(request: Request):
     # Redirect to Google for authorization
-    redirect_uri = request.url_for('auth_callback')
-    
-    # Force https on Vercel to avoid 'invalid_client' or redirect mapping issues
-    if "vercel.app" in str(request.base_url) or os.getenv("VERCEL"):
-        redirect_uri = str(redirect_uri).replace("http://", "https://")
+    base_url = os.getenv("BASE_URL")
+    if base_url:
+        redirect_uri = f"{base_url.rstrip('/')}/auth/callback"
+    else:
+        redirect_uri = str(request.url_for('auth_callback'))
+        # Force https on Vercel to avoid 'invalid_client' or redirect mapping issues
+        if "vercel.app" in str(request.base_url) or os.getenv("VERCEL"):
+            redirect_uri = redirect_uri.replace("http://", "https://")
         
     print(f"DEBUG: OAuth Redirect URI: {redirect_uri}")
     
