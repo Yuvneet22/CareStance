@@ -101,7 +101,10 @@ from data.questions_12th import questions_12th
 from data.questions_above_12th import questions_above_12th
 
 # Create Tables
-models.Base.metadata.create_all(bind=engine)
+try:
+    models.Base.metadata.create_all(bind=engine)
+except Exception as e:
+    print(f"Database initialization error: {e}")
 
 app = FastAPI(title="CareStance")
 
