@@ -23,33 +23,52 @@
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {% for c in counsellors %}
             <div
-                class="bg-white/80 rounded-2xl p-6 shadow-sm border border-slate-200 hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
-                <div class="flex items-start justify-between mb-4">
+                class="bg-white/90 backdrop-blur-sm rounded-3xl p-8 shadow-sm border border-slate-100 hover:shadow-2xl hover:border-indigo-200 transition-all duration-500 group">
+                <div class="flex items-center gap-4 mb-6">
+                    <div class="h-16 w-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white text-2xl shadow-lg shadow-indigo-100 group-hover:scale-110 transition-transform duration-500">
+                        <i class="fas fa-user-tie"></i>
+                    </div>
                     <div>
-                        <h4 class="text-xl font-bold text-slate-900">{{ c.user.full_name }}</h4>
-                        <p class="text-sm font-medium text-emerald-600 mt-1">₹{{ c.fee }} / Session</p>
+                        <h4 class="text-xl font-extrabold text-slate-800 tracking-tight">{{ c.user.full_name }}</h4>
+                        <div class="flex items-center gap-2 mt-1">
+                            <span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] font-bold rounded-md uppercase tracking-wide">Verified Expert</span>
+                            <span class="text-sm font-bold text-indigo-600">₹{{ c.fee }}<span class="text-xs text-slate-400 font-normal">/session</span></span>
+                        </div>
                     </div>
                 </div>
 
-                <div class="bg-slate-50 p-3 rounded-lg border border-slate-100 mb-6">
-                    <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Availability</p>
-                    <p class="text-sm text-slate-700 font-medium whitespace-pre-line">{{ c.availability.get('text', 'Ask
-                        for availability') if c.availability else 'Flexible' }}</p>
+                <div class="space-y-4 mb-8">
+                    <div class="flex items-start gap-3 p-4 bg-slate-50/50 rounded-2xl border border-slate-100 group-hover:bg-white group-hover:border-indigo-50 transition-colors">
+                        <i class="fas fa-clock text-indigo-400 mt-1"></i>
+                        <div>
+                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Availability</p>
+                            <p class="text-sm text-slate-600 font-semibold leading-relaxed">{{ c.availability.get('text', 'Flexible Hours') if c.availability else 'Flexible Hours' }}</p>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Select Date
-                            & Time</label>
-                        <input type="datetime-local" id="time_{{ c.user_id }}"
-                            class="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all">
+                <div class="space-y-5">
+                    <div class="relative">
+                        <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">Schedule Your Session</label>
+                        <div class="relative">
+                            <i class="fas fa-calendar-day absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                            <input type="datetime-local" id="time_{{ c.user_id }}"
+                                class="w-full pl-11 pr-4 py-3.5 rounded-2xl border border-slate-200 bg-slate-50/30 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all font-medium text-slate-700">
+                        </div>
                     </div>
 
-                    <button onclick="payNow('{{ c.user_id }}', '{{ c.fee }}', '{{ c.user.full_name }}')"
-                        class="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-sm text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors">
-                        Book & Pay Now
+                    <button id="btn_{{ c.user_id }}" onclick="payNow('{{ c.user_id }}', '{{ c.fee }}', '{{ c.user.full_name }}')"
+                        class="w-full relative overflow-hidden group/btn flex justify-center items-center py-4 px-6 rounded-2xl bg-slate-900 hover:bg-indigo-600 text-white font-bold transition-all duration-300 shadow-xl shadow-slate-200 hover:shadow-indigo-200 active:scale-95">
+                        <span class="relative z-10 flex items-center gap-2">
+                            <i class="fas fa-bolt text-yellow-400 group-hover/btn:animate-pulse"></i>
+                            Book Consultation
+                        </span>
+                        <div class="absolute inset-0 bg-gradient-to-r from-indigo-600 to-violet-600 opacity-0 group-hover/btn:opacity-100 transition-opacity duration-300"></div>
                     </button>
-                    <p class="text-xs text-center text-slate-500">Video call link generated instantly after booking.</p>
+                    
+                    <p class="text-[10px] text-center text-slate-400 font-medium">
+                        <i class="fas fa-shield-alt mr-1"></i> Secure payment & instant meeting link
+                    </p>
                 </div>
             </div>
             {% endfor %}
@@ -71,6 +90,12 @@
             alert("Please select an appointment time first.");
             return;
         }
+
+        const btn = document.getElementById(`btn_${counsellorId}`);
+        const originalContent = btn.innerHTML;
+        
+        btn.disabled = true;
+        btn.innerHTML = `<i class="fas fa-circle-notch fa-spin mr-2"></i> Processing...`;
 
         if (parseFloat(fee) === 0) {
             // Direct booking for free counsellors
@@ -109,6 +134,8 @@
         } catch (err) {
             console.error("Order creation failed:", err);
             alert("Payment Initiation Failed: " + err.message);
+            btn.disabled = false;
+            btn.innerHTML = originalContent;
             return;
         }
 
@@ -155,6 +182,20 @@
         };
 
         const rzp = new Razorpay(options);
+        rzp.on('payment.failed', function (response) {
+            console.error("Payment failed", response.error);
+            btn.disabled = false;
+            btn.innerHTML = originalContent;
+        });
+        
+        // Handle closing the modal
+        options.modal = {
+            ondismiss: function() {
+                btn.disabled = false;
+                btn.innerHTML = originalContent;
+            }
+        };
+
         rzp.open();
     }
 </script>

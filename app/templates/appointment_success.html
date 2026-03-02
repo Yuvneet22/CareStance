@@ -3,52 +3,88 @@
 {% block title %}Booking Successful{% endblock %}
 
 {% block content %}
-<div class="bg-white/70 backdrop-blur-xl rounded-3xl overflow-hidden shadow-2xl border border-white/50 max-w-3xl mx-auto mt-10">
-    <div class="px-6 py-8 sm:p-12 text-center">
-        <div class="mx-auto flex items-center justify-center h-20 w-20 rounded-full bg-emerald-100 mb-6 border-4 border-emerald-50">
-            <svg class="h-10 w-10 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
-            </svg>
-        </div>
+<div class="max-w-4xl mx-auto px-4 py-12">
+    <div class="relative bg-white/80 backdrop-blur-2xl rounded-[40px] shadow-2xl border border-white/60 overflow-hidden transform transition-all duration-700 hover:shadow-indigo-200/50">
         
-        <h2 class="text-3xl font-extrabold text-slate-900 mb-2">Booking Confirmed!</h2>
-        <p class="text-lg text-slate-500 mb-8">Your session with your counsellor has been successfully scheduled and paid.</p>
-        
-        <div class="bg-slate-50 border border-slate-200 rounded-2xl p-6 text-left max-w-md mx-auto mb-8 shadow-sm">
-            <h4 class="text-sm font-bold text-slate-500 uppercase tracking-wider mb-4 border-b border-slate-200 pb-2">Appointment Details</h4>
-            
-            <div class="space-y-4">
-                <div class="flex justify-between">
-                    <span class="text-slate-600 font-medium">Counsellor</span>
-                    <span class="font-bold text-slate-900">{{ appointment.counsellor.full_name }}</span>
-                </div>
-                <div class="flex justify-between">
-                    <span class="text-slate-600 font-medium">Session Time</span>
-                    <span class="font-bold text-slate-900">{{ appointment.appointment_time.strftime('%b %d, %I:%M %p') }}</span>
-                </div>
-                <div class="flex justify-between">
-                    <span class="text-slate-600 font-medium">Payment Status</span>
-                    <span class="font-bold text-emerald-600">Paid ✅</span>
+        <!-- Top Banner -->
+        <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-emerald-400 via-indigo-500 to-violet-600"></div>
+
+        <div class="px-8 py-12 sm:p-20 text-center">
+            <!-- Animated Success Icon -->
+            <div class="relative mx-auto mb-10 group">
+                <div class="absolute inset-0 bg-emerald-400/20 rounded-full blur-2xl animate-pulse group-hover:bg-emerald-400/30 transition-all"></div>
+                <div class="relative flex items-center justify-center h-28 w-28 rounded-full bg-gradient-to-tr from-emerald-50 to-emerald-100 border-[6px] border-white shadow-xl group-hover:rotate-12 transition-transform duration-500">
+                    <svg class="h-14 w-14 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+                    </svg>
                 </div>
             </div>
             
-            <div class="mt-6 pt-4 border-t border-slate-200">
-                <p class="text-sm text-slate-600 font-medium mb-2">Join Link:</p>
-                <a href="{{ appointment.meeting_link }}" target="_blank" class="block w-full py-3 px-4 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-center rounded-xl transition-colors truncate border border-indigo-200">
-                    {{ appointment.meeting_link }}
+            <h2 class="text-4xl sm:text-5xl font-black text-slate-900 mb-4 tracking-tight leading-tight">
+                Success! <span class="bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-violet-600">You're Booked.</span>
+            </h2>
+            <p class="text-xl text-slate-500 font-medium mb-12 max-w-xl mx-auto">
+                A confirmation email has been dispatched to both you and your counsellor. Get ready for an insightful session!
+            </p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-10 max-w-3xl mx-auto mb-16">
+                <!-- Info Card -->
+                <div class="bg-indigo-50/50 rounded-[32px] p-8 border border-indigo-100/50 text-left">
+                    <h4 class="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] mb-6">Reservation Summary</h4>
+                    
+                    <div class="space-y-6">
+                        <div class="group/item">
+                            <span class="block text-[11px] font-bold text-slate-400 uppercase mb-1">Expert Guide</span>
+                            <span class="text-lg font-extrabold text-slate-800 flex items-center gap-2">
+                                <i class="fas fa-id-badge text-indigo-400 text-sm"></i>
+                                {{ appointment.counsellor.full_name }}
+                            </span>
+                        </div>
+                        <div class="group/item">
+                            <span class="block text-[11px] font-bold text-slate-400 uppercase mb-1">Scheduled For</span>
+                            <span class="text-lg font-extrabold text-slate-800 flex items-center gap-2">
+                                <i class="fas fa-calendar-check text-indigo-400 text-sm"></i>
+                                {{ appointment.appointment_time.strftime('%b %d, %I:%M %p') }}
+                            </span>
+                        </div>
+                        <div class="group/item">
+                            <span class="block text-[11px] font-bold text-slate-400 uppercase mb-1">Transaction</span>
+                            <span class="px-3 py-1 bg-emerald-500/10 text-emerald-600 text-xs font-black rounded-lg uppercase tracking-wider inline-flex items-center gap-1.5">
+                                <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span> Verified & Paid
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Meeting Link Area -->
+                <div class="bg-violet-50/50 rounded-[32px] p-8 border border-violet-100/50 text-left flex flex-col justify-between">
+                    <div>
+                        <h4 class="text-[10px] font-black text-violet-400 uppercase tracking-[0.2em] mb-6">Join Details</h4>
+                        <p class="text-xs text-slate-500 font-semibold mb-3">Copy this link or use the join button below:</p>
+                        <div class="flex items-center gap-2 p-3 bg-white border border-violet-100 rounded-xl mb-4 group/box">
+                            <span class="text-xs text-slate-400 font-mono truncate flex-grow">{{ appointment.meeting_link }}</span>
+                            <button onclick="navigator.clipboard.writeText('{{ appointment.meeting_link }}'); alert('Link copied!')" 
+                                    class="text-violet-500 hover:text-violet-700 transition"
+                                    title="Copy link">
+                                <i class="far fa-copy"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <a href="{{ appointment.meeting_link }}" target="_blank"
+                        class="w-full py-4 rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-black text-sm uppercase tracking-widest shadow-xl shadow-indigo-200 hover:scale-[1.03] active:scale-95 transition-all text-center group/btn">
+                        <i class="fas fa-video mr-2 group-hover/btn:animate-bounce"></i> Launch Meeting
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Bottom Actions -->
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-6">
+                <a href="/dashboard" class="group flex items-center gap-2 text-slate-400 hover:text-indigo-600 font-bold transition-all text-sm">
+                    <i class="fas fa-long-arrow-alt-left transition-transform group-hover:-translate-x-1"></i>
+                    Return to Student Dashboard
                 </a>
             </div>
-        </div>
-        
-        <div class="flex flex-col sm:flex-row gap-4 justify-center">
-            <a href="{{ appointment.meeting_link }}" target="_blank"
-                class="inline-flex justify-center items-center px-8 py-3.5 border border-transparent text-base font-bold rounded-2xl text-white bg-indigo-600 hover:bg-indigo-700 shadow-md shadow-indigo-200 transition-all hover:scale-[1.02]">
-                Join Video Call Now
-            </a>
-            <a href="/dashboard"
-                class="inline-flex justify-center items-center px-8 py-3.5 border border-slate-300 shadow-sm text-base font-bold rounded-2xl text-slate-700 bg-white hover:bg-slate-50 transition-all">
-                Back to Dashboard
-            </a>
         </div>
     </div>
 </div>

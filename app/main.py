@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, status, Request, Form, Response
+from fastapi import FastAPI, Depends, HTTPException, status, Request, Form, Response, BackgroundTasks
 from pydantic import BaseModel
 from typing import List, Optional
 from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
@@ -22,6 +22,8 @@ from authlib.integrations.starlette_client import OAuth
 
 from groq import AsyncGroq
 import razorpay
+from . import models
+from .email_utils import send_email, get_booking_template, get_cancellation_template
 load_dotenv()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
@@ -653,7 +655,7 @@ async def create_razorpay_order(counsellor_id: int, request: Request, fee: float
         raise HTTPException(status_code=500, detail="Could not create payment order")
 
 @app.post("/book_free_counsellor/{counsellor_id}")
-async def book_free_counsellor(counsellor_id: int, request: Request, appointment_time: str = Form(...), db: Session = Depends(get_db)):
+async def book_free_counsellor(counsellor_id: int, request: Request, background_tasks: BackgroundTasks, appointment_time: str = Form(...), db: Session = Depends(get_db)):
     user = get_current_user(request, db)
     if not user:
          return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
@@ -686,6 +688,27 @@ async def book_free_counsellor(counsellor_id: int, request: Request, appointment
     db.add(appointment)
     db.commit()
     db.refresh(appointment)
+    
+    # Send Emails
+    student_email = user.email
+    counsellor_user = db.query(models.User).filter(models.User.id == counsellor_id).first()
+    if counsellor_user:
+        appt_time_str = appt_time.strftime('%b %d, %I:%M %p')
+        # To Student
+        background_tasks.add_task(
+            send_email, 
+            student_email, 
+            "CareStance Session Confirmed! 🚀", 
+            get_booking_template(user.full_name, counsellor_user.full_name, appt_time_str, meeting_link, "student")
+        )
+        # To Counsellor
+        background_tasks.add_task(
+            send_email, 
+            counsellor_user.email, 
+            "New Coaching Session Booked! 📆", 
+            get_booking_template(counsellor_user.full_name, user.full_name, appt_time_str, meeting_link, "counsellor")
+        )
+
     print(f"DEBUG: Free Appointment created successfully for student {user.id} and counsellor {counsellor_id}")
     
     return templates.TemplateResponse("appointment_success.html", {"request": request, "user": user, "appointment": appointment})
@@ -719,7 +742,7 @@ async def appointment_status(appointment_id: int, db: Session = Depends(get_db))
     }
 
 @app.post("/appointment/delete/{appointment_id}")
-async def delete_appointment(appointment_id: int, request: Request, db: Session = Depends(get_db)):
+async def delete_appointment(appointment_id: int, request: Request, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     user = get_current_user(request, db)
     if not user:
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
@@ -732,6 +755,27 @@ async def delete_appointment(appointment_id: int, request: Request, db: Session 
     if user.id != appointment.student_id and user.id != appointment.counsellor_id:
         raise HTTPException(status_code=403, detail="Not authorized to delete this appointment")
     
+    # Send Cancellation Emails
+    student = db.query(models.User).filter(models.User.id == appointment.student_id).first()
+    counsellor = db.query(models.User).filter(models.User.id == appointment.counsellor_id).first()
+    appt_time_str = appointment.appointment_time.strftime('%b %d, %I:%M %p') if appointment.appointment_time else "To Be Decided"
+    
+    if student and counsellor:
+        # To Student
+        background_tasks.add_task(
+            send_email,
+            student.email,
+            "CareStance Session Cancelled ⚠️",
+            get_cancellation_template(student.full_name, counsellor.full_name, appt_time_str, "student")
+        )
+        # To Counsellor
+        background_tasks.add_task(
+            send_email,
+            counsellor.email,
+            "Session Cancellation Alert ⚠️",
+            get_cancellation_template(counsellor.full_name, student.full_name, appt_time_str, "counsellor")
+        )
+
     db.delete(appointment)
     db.commit()
     
@@ -805,7 +849,7 @@ async def delete_ticket(ticket_id: int, request: Request, db: Session = Depends(
     return RedirectResponse(url="/admin", status_code=status.HTTP_302_FOUND)
 
 @app.post("/verify_payment")
-async def verify_payment(request: Request, db: Session = Depends(get_db)):
+async def verify_payment(request: Request, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     user = get_current_user(request, db)
     if not user:
          return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
@@ -853,6 +897,27 @@ async def verify_payment(request: Request, db: Session = Depends(get_db)):
     db.add(appointment)
     db.commit()
     db.refresh(appointment)
+    
+    # Send Emails
+    student_email = user.email
+    counsellor_user = db.query(models.User).filter(models.User.id == counsellor_id).first()
+    if counsellor_user:
+        appt_time_str = appt_time.strftime('%b %d, %I:%M %p')
+        # To Student
+        background_tasks.add_task(
+            send_email, 
+            student_email, 
+            "CareStance Session Confirmed! 🚀", 
+            get_booking_template(user.full_name, counsellor_user.full_name, appt_time_str, meeting_link, "student")
+        )
+        # To Counsellor
+        background_tasks.add_task(
+            send_email, 
+            counsellor_user.email, 
+            "Session Paid & Confirmed! 💰", 
+            get_booking_template(counsellor_user.full_name, user.full_name, appt_time_str, meeting_link, "counsellor")
+        )
+
     print(f"DEBUG: Appointment created successfully for student {user.id} and counsellor {counsellor_id}")
     
     return templates.TemplateResponse("appointment_success.html", {"request": request, "user": user, "appointment": appointment})
