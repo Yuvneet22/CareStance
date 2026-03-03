@@ -34,16 +34,44 @@
             </div>
 
             {% if assessment and assessment.phase_2_category %}
-            <div
-                class="flex items-center gap-3 bg-white/10 backdrop-blur-md px-5 py-3 rounded-2xl border border-white/10">
-                <div
-                    class="h-10 w-10 rounded-full bg-gradient-to-br from-emerald-400 to-green-600 flex items-center justify-center text-white font-bold shadow-lg">
-                    {{ assessment.phase_2_category[0] | upper }}
+            <div class="flex items-center gap-6">
+                <!-- Profile Image -->
+                <div class="relative group">
+                    <img src="{{ user.profile_photo if user.profile_photo else 'https://ui-avatars.com/api/?name=' + user.full_name + '&background=random' }}" 
+                         alt="Profile" 
+                         class="w-20 h-20 rounded-2xl object-cover border-4 border-white/20 shadow-xl">
+                    <button onclick="document.getElementById('photo-upload').click()" 
+                            class="absolute -bottom-2 -right-2 bg-indigo-600 text-white p-2 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                        <i class="fas fa-camera text-xs"></i>
+                    </button>
+                    <form id="photo-form" action="/profile/upload-photo" method="POST" enctype="multipart/form-data" class="hidden">
+                        <input type="file" id="photo-upload" name="file" onchange="document.getElementById('photo-form').submit()" accept="image/*">
+                    </form>
                 </div>
-                <div>
-                    <p class="text-xs text-slate-400 font-bold uppercase tracking-wider">Current Path</p>
-                    <p class="font-bold text-white">{{ assessment.phase_2_category }}</p>
+
+                <div class="flex items-center gap-3 bg-white/10 backdrop-blur-md px-5 py-3 rounded-2xl border border-white/10">
+                    <div
+                        class="h-10 w-10 rounded-full bg-gradient-to-br from-emerald-400 to-green-600 flex items-center justify-center text-white font-bold shadow-lg">
+                        {{ assessment.phase_2_category[0] | upper }}
+                    </div>
+                    <div>
+                        <p class="text-xs text-slate-400 font-bold uppercase tracking-wider">Current Path</p>
+                        <p class="font-bold text-white">{{ assessment.phase_2_category }}</p>
+                    </div>
                 </div>
+            </div>
+            {% else %}
+             <div class="relative group">
+                <img src="{{ user.profile_photo if user.profile_photo else 'https://ui-avatars.com/api/?name=' + user.full_name + '&background=random' }}" 
+                     alt="Profile" 
+                     class="w-20 h-20 rounded-2xl object-cover border-4 border-white/20 shadow-xl">
+                <button onclick="document.getElementById('photo-upload-basic').click()" 
+                        class="absolute -bottom-2 -right-2 bg-indigo-600 text-white p-2 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                    <i class="fas fa-camera text-xs"></i>
+                </button>
+                <form id="photo-form-basic" action="/profile/upload-photo" method="POST" enctype="multipart/form-data" class="hidden">
+                    <input type="file" id="photo-upload-basic" name="file" onchange="document.getElementById('photo-form-basic').submit()" accept="image/*">
+                </form>
             </div>
             {% endif %}
         </div>
