@@ -726,9 +726,17 @@ async def upload_profile_photo(
     if not user:
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
     
+    if not file.filename:
+        return RedirectResponse(url="/dashboard?error=No file selected", status_code=status.HTTP_302_FOUND)
+
     file_extension = os.path.splitext(file.filename)[1]
     filename = f"user_{user.id}_{uuid.uuid4().hex}{file_extension}"
-    file_path = os.path.join("app/static/uploads/profile_photos", filename)
+    
+    # Ensure directory exists
+    upload_dir = os.path.join(BASE_DIR, "static", "uploads", "profile_photos")
+    os.makedirs(upload_dir, exist_ok=True)
+    
+    file_path = os.path.join(upload_dir, filename)
     
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
@@ -755,12 +763,17 @@ async def upload_certificates(
         db.add(profile)
     
     cert_paths = profile.certificates if profile.certificates else []
+    
+    # Ensure directory exists
+    upload_dir = os.path.join(BASE_DIR, "static", "uploads", "certificates")
+    os.makedirs(upload_dir, exist_ok=True)
+
     # If single file is uploaded, it might not be a list in some cases, but starlette handles it
     for file in files:
         if file.filename:
             file_extension = os.path.splitext(file.filename)[1]
             filename = f"cert_{user.id}_{uuid.uuid4().hex}{file_extension}"
-            file_path = os.path.join("app/static/uploads/certificates", filename)
+            file_path = os.path.join(upload_dir, filename)
             
             with open(file_path, "wb") as buffer:
                 shutil.copyfileobj(file.file, buffer)
