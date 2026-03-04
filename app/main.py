@@ -319,7 +319,7 @@ async def auth_callback(request: Request, db: Session = Depends(get_db)):
     print(f"DEBUG: OAuth Redirect URI (callback): {redirect_uri}")
 
     try:
-        token = await oauth.google.authorize_access_token(request, redirect_uri=redirect_uri)
+        token = await oauth.google.authorize_access_token(request)
     except Exception as e:
         import traceback
         print(f"OAuth Token Exchange Error: {e}")
