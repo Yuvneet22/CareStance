@@ -289,42 +289,34 @@ async def reset_password(
     
     return RedirectResponse(url="/login?message=Password updated successfully", status_code=status.HTTP_302_FOUND)
 
-def _get_oauth_redirect_uri(request: Request) -> str:
-    """Build the OAuth redirect URI, preferring BASE_URL and always forcing HTTPS on Vercel."""
+@app.get("/login/google")
+async def login_google(request: Request):
+    if not os.getenv('GOOGLE_CLIENT_ID'):
+        print("ERROR: GOOGLE_CLIENT_ID not found in environment!")
+        return RedirectResponse(url='/login?error=Configuration missing', status_code=status.HTTP_302_FOUND)
+    
+    # Build redirect_uri: prefer BASE_URL env var, fallback to request-based URL
     base_url = os.getenv("BASE_URL")
     if base_url:
         redirect_uri = f"{base_url.rstrip('/')}/auth/callback"
     else:
         redirect_uri = str(request.url_for('auth_callback'))
-    # Always force https on Vercel (reverse proxy terminates TLS, so request may show http)
-    if "vercel.app" in str(request.base_url) or os.getenv("VERCEL"):
-        redirect_uri = redirect_uri.replace("http://", "https://")
-    return redirect_uri
-
-@app.get("/login/google")
-async def login_google(request: Request):
-    redirect_uri = _get_oauth_redirect_uri(request)
-    print(f"DEBUG: OAuth Redirect URI (login): {redirect_uri}")
-    print(f"DEBUG: GOOGLE_CLIENT_ID present: {bool(os.getenv('GOOGLE_CLIENT_ID'))}")
+        if "vercel.app" in str(request.base_url) or os.getenv("VERCEL"):
+            redirect_uri = redirect_uri.replace("http://", "https://")
     
-    if not os.getenv('GOOGLE_CLIENT_ID'):
-        print("ERROR: GOOGLE_CLIENT_ID not found in environment!")
-        return RedirectResponse(url='/login?error=Configuration missing', status_code=status.HTTP_302_FOUND)
-        
+    print(f"DEBUG: OAuth Redirect URI: {redirect_uri}")
     return await oauth.google.authorize_redirect(request, redirect_uri)
 
 @app.get("/auth/callback")
 async def auth_callback(request: Request, db: Session = Depends(get_db)):
-    redirect_uri = _get_oauth_redirect_uri(request)
-    print(f"DEBUG: OAuth Redirect URI (callback): {redirect_uri}")
-
     try:
+        # authlib retrieves redirect_uri from session automatically — do NOT pass it again
         token = await oauth.google.authorize_access_token(request)
     except Exception as e:
         import traceback
         print(f"OAuth Token Exchange Error: {e}")
         traceback.print_exc()
-        error_msg = str(e).replace(" ", "+")[:200]  # Keep URL-safe and short
+        error_msg = str(e).replace(" ", "+")[:200]
         return RedirectResponse(url=f'/login?error={error_msg}', status_code=status.HTTP_302_FOUND)
     
     user_info = token.get('userinfo')
