@@ -113,7 +113,15 @@ from fastapi.middleware.gzip import GZipMiddleware
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 # Add Session Middleware (needed for OAuth)
-app.add_middleware(SessionMiddleware, secret_key=os.getenv("SECRET_KEY", "a_very_secret_key_for_sessions"))
+# On Vercel (HTTPS), cookies must have Secure flag to survive cross-site OAuth redirects
+_is_production = bool(os.getenv("VERCEL") or os.getenv("BASE_URL", "").startswith("https"))
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=os.getenv("SECRET_KEY", "a_very_secret_key_for_sessions"),
+    same_site="lax",
+    https_only=_is_production,
+    max_age=14 * 24 * 60 * 60,  # 14 days
+)
 
 # Mount Static & Templates
 # Mount Static & Templates
