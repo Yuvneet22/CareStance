@@ -227,6 +227,13 @@
                         </svg>
                         Support
                     </a>
+                    {% if user.role == 'admin' %}
+                    <a href="/admin"
+                        class="mr-6 text-violet-700 hover:text-violet-900 font-extrabold flex items-center gap-1 transition-colors">
+                        <i class="fas fa-user-shield"></i>
+                        Admin
+                    </a>
+                    {% endif %}
                     <span class="text-gray-700 mr-4 border-l pl-4 border-slate-300">Hello, {{ user.full_name }}</span>
                     <a href="/logout"
                         class="text-sm font-medium text-rose-600 hover:text-rose-500 hover:scale-105 transition-transform">Logout</a>

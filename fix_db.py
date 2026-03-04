@@ -8,7 +8,7 @@ def try_add_column(table, col, col_type):
             conn.commit()
             print(f"Added {col} to {table}")
         except Exception as e:
-            if "already exists" in str(e):
+            if "already exists" in str(e) or "duplicate column" in str(e).lower():
                 print(f"{col} already exists in {table}")
             else:
                 print(f"Error adding {col} to {table}: {e}")
@@ -20,6 +20,7 @@ def update_schema():
     try_add_column("users", "contact_number", "VARCHAR")
     try_add_column("users", "full_name", "VARCHAR")
     try_add_column("users", "role", "VARCHAR DEFAULT 'student'")
+    try_add_column("users", "profile_photo", "VARCHAR")
     
     # Appointments table
     try_add_column("appointments", "razorpay_order_id", "VARCHAR")
@@ -31,6 +32,10 @@ def update_schema():
     try_add_column("tickets", "admin_reply", "TEXT")
     
     # Counsellor Profiles
+    try_add_column("counsellor_profiles", "certificates", "JSON")
+    try_add_column("counsellor_profiles", "experience", "TEXT")
+    try_add_column("counsellor_profiles", "is_verified", "BOOLEAN DEFAULT FALSE")
+    try_add_column("counsellor_profiles", "verification_status", "VARCHAR DEFAULT 'pending'")
     try_add_column("counsellor_profiles", "account_details", "JSON")
     
     # Assessment Results

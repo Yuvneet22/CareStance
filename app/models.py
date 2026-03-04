@@ -10,6 +10,7 @@ class User(Base):
     hashed_password = Column(String)
     full_name = Column(String)
     contact_number = Column(String)
+    profile_photo = Column(String, nullable=True)
     role = Column(String, default="student")
     
     assessment = relationship("AssessmentResult", back_populates="user", uselist=False)
@@ -110,6 +111,10 @@ class CounsellorProfile(Base):
     # Storing availability as JSON. E.g., {"Monday": ["10:00", "11:00"], "Tuesday": []}
     availability = Column(JSON, nullable=True)
     account_details = Column(JSON, nullable=True) # e.g. {"bank_name": "...", "account_num": "...", "ifsc": "...", "upi": "..."}
+    certificates = Column(JSON, nullable=True) # List of file paths
+    experience = Column(Text, nullable=True)
+    is_verified = Column(Boolean, default=False)
+    verification_status = Column(String, default="pending") # pending, approved, rejected
 
     user = relationship("User", back_populates="counsellor_profile")
 

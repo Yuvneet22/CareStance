@@ -13,6 +13,65 @@
             </span>
         </div>
 
+        {% if pending_counsellors %}
+        <!-- Counsellor Verification Section -->
+        <div class="mb-12">
+            <h2 class="text-2xl font-extrabold text-slate-800 mb-6 flex items-center gap-2">
+                <i class="fas fa-user-check text-indigo-600"></i>
+                Counsellor Verification Requests
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {% for prof in pending_counsellors %}
+                <div class="bg-white rounded-3xl p-6 shadow-xl border border-indigo-100 relative overflow-hidden">
+                    <div class="flex items-start gap-4 mb-4">
+                        <img src="{{ prof.user.profile_photo if prof.user.profile_photo else 'https://ui-avatars.com/api/?name=' + prof.user.full_name }}" 
+                             class="w-16 h-16 rounded-2xl object-cover border-2 border-indigo-50 shadow-md">
+                        <div>
+                            <h3 class="font-bold text-slate-900 text-lg">{{ prof.user.full_name }}</h3>
+                            <p class="text-sm text-slate-500">{{ prof.user.email }}</p>
+                            <span class="text-[10px] font-bold uppercase tracking-widest text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full mt-1 inline-block">Counsellor</span>
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-3 mb-6">
+                        <div>
+                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Professional Experience</p>
+                            <p class="text-sm text-slate-700 leading-relaxed">{{ prof.experience }}</p>
+                        </div>
+                        
+                        <div>
+                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Certificates</p>
+                            <div class="flex flex-wrap gap-2 mt-1">
+                                {% for cert in prof.certificates or [] %}
+                                <a href="{{ cert }}" target="_blank" class="px-3 py-1 bg-slate-100 hover:bg-slate-200 rounded-lg text-xs font-bold text-slate-600 transition-colors flex items-center gap-1">
+                                    <i class="fas {% if cert.endswith('.pdf') %}fa-file-pdf text-red-500{% else %}fa-image text-blue-500{% endif %}"></i>
+                                    View Doc {{ loop.index }}
+                                </a>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-3 pt-4 border-t border-slate-50">
+                        <form action="/admin/verify-counsellor/{{ prof.user.id }}" method="POST" class="flex-1">
+                            <input type="hidden" name="verification_status" value="approved">
+                            <button type="submit" class="w-full py-2 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl shadow-lg shadow-emerald-100 transition-all text-sm uppercase tracking-wider">
+                                Approve
+                            </button>
+                        </form>
+                        <form action="/admin/verify-counsellor/{{ prof.user.id }}" method="POST" class="flex-1">
+                            <input type="hidden" name="verification_status" value="rejected">
+                            <button type="submit" class="w-full py-2 bg-white border border-red-200 text-red-500 hover:bg-red-50 font-bold rounded-xl transition-all text-sm uppercase tracking-wider">
+                                Reject
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
         <div class="flex flex-col">
             <div class="-my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
                 <div class="py-2 align-middle inline-block min-w-full sm:px-6 lg:px-8">
@@ -171,7 +230,7 @@
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <div class="flex text-yellow-400">
-                                    {% for i in range(fb.rating) %}
+                                    {% for i in range(fb.rating or 0) %}
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 fill-current"
                                         viewBox="0 0 20 20">
                                         <path

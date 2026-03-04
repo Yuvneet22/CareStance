@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, status, Request, Form, Response, BackgroundTasks
+from fastapi import FastAPI, Depends, HTTPException, status, Request, Form, Response, BackgroundTasks, File, UploadFile
 from pydantic import BaseModel
 from typing import List, Optional
 from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
@@ -11,6 +11,7 @@ import re
 import json
 import uuid
 import datetime
+import shutil
 
 import os
 import json
@@ -625,30 +626,37 @@ async def dashboard(request: Request, db: Session = Depends(get_db)):
 
 @app.get("/admin", response_class=HTMLResponse)
 async def admin_dashboard(request: Request, db: Session = Depends(get_db)):
-    # 1. Check if user is logged in
-    user = get_current_user(request, db)
-    if not user:
-         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
-    
-    # Safety Check: Allow access if user email matches ADMIN_EMAIL env var
-    admin_email = os.getenv("ADMIN_EMAIL")
-    if user.role != "admin" and (not admin_email or user.email != admin_email):
-        return RedirectResponse(url="/dashboard", status_code=status.HTTP_302_FOUND)
+    try:
+        user = get_current_user(request, db)
+        if not user:
+             return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+        
+        admin_email = os.getenv("ADMIN_EMAIL")
+        if user.role != "admin" and (not admin_email or user.email != admin_email):
+            print(f"DEBUG: Admin access denied for {user.email}")
+            return RedirectResponse(url="/dashboard?error=Admin access denied", status_code=status.HTTP_302_FOUND)
 
-    # 2. Fetch all users
-    all_users = db.query(models.User).all()
-
-    # 3. Fetch all feedback and tickets
-    all_feedback = db.query(models.Feedback).order_by(models.Feedback.timestamp.desc()).all()
-    all_tickets = db.query(models.Ticket).order_by(models.Ticket.timestamp.desc()).all()
-    
-    return templates.TemplateResponse("admin_dashboard.html", {
-        "request": request, 
-        "user": user, 
-        "users": all_users,
-        "feedbacks": all_feedback,
-        "tickets": all_tickets
-    })
+        all_users = db.query(models.User).all()
+        all_feedback = db.query(models.Feedback).order_by(models.Feedback.timestamp.desc()).all()
+        all_tickets = db.query(models.Ticket).order_by(models.Ticket.timestamp.desc()).all()
+        pending_counsellors = db.query(models.CounsellorProfile).filter(models.CounsellorProfile.verification_status == "pending").all()
+        
+        return templates.TemplateResponse("admin_dashboard.html", {
+            "request": request, 
+            "user": user, 
+            "users": all_users,
+            "feedbacks": all_feedback,
+            "tickets": all_tickets,
+            "pending_counsellors": pending_counsellors
+        })
+    except Exception as e:
+        import traceback
+        print(f"ADMIN DASHBOARD ERROR: {traceback.format_exc()}")
+        return templates.TemplateResponse("dashboard.html", {
+            "request": request,
+            "user": user,
+            "error": f"Internal Error: {str(e)}"
+        })
 
 @app.post("/admin/users/{user_id}/delete")
 async def delete_user(user_id: int, request: Request, db: Session = Depends(get_db)):
@@ -714,13 +722,115 @@ async def counsellor_update(
     db.commit()
     return RedirectResponse(url="/dashboard", status_code=status.HTTP_302_FOUND)
 
+@app.post("/profile/upload-photo")
+async def upload_profile_photo(
+    request: Request,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db)
+):
+    user = get_current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+    
+    if not file.filename:
+        return RedirectResponse(url="/dashboard?error=No file selected", status_code=status.HTTP_302_FOUND)
+
+    file_extension = os.path.splitext(file.filename)[1]
+    filename = f"user_{user.id}_{uuid.uuid4().hex}{file_extension}"
+    
+    # Ensure directory exists
+    upload_dir = os.path.join(BASE_DIR, "static", "uploads", "profile_photos")
+    try:
+        os.makedirs(upload_dir, exist_ok=True)
+        file_path = os.path.join(upload_dir, filename)
+        
+        contents = await file.read()
+        with open(file_path, "wb") as buffer:
+            buffer.write(contents)
+        
+        user.profile_photo = f"/static/uploads/profile_photos/{filename}"
+        db.commit()
+    except Exception as e:
+        print(f"UPLOAD ERROR: {e}")
+        return RedirectResponse(url="/dashboard?error=Upload failed", status_code=status.HTTP_302_FOUND)
+    
+    return RedirectResponse(url="/dashboard", status_code=status.HTTP_302_FOUND)
+
+@app.post("/counsellor/upload-certificates")
+async def upload_certificates(
+    request: Request,
+    experience: str = Form(...),
+    files: List[UploadFile] = File(...),
+    db: Session = Depends(get_db)
+):
+    user = get_current_user(request, db)
+    if not user or user.role != "counsellor":
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+    
+    profile = db.query(models.CounsellorProfile).filter(models.CounsellorProfile.user_id == user.id).first()
+    if not profile:
+        profile = models.CounsellorProfile(user_id=user.id)
+        db.add(profile)
+    
+    cert_paths = profile.certificates if profile.certificates else []
+    
+    # Ensure directory exists
+    upload_dir = os.path.join(BASE_DIR, "static", "uploads", "certificates")
+    try:
+        os.makedirs(upload_dir, exist_ok=True)
+
+        for file in files:
+            if file.filename:
+                file_extension = os.path.splitext(file.filename)[1]
+                filename = f"cert_{user.id}_{uuid.uuid4().hex}{file_extension}"
+                file_path = os.path.join(upload_dir, filename)
+                
+                contents = await file.read()
+                with open(file_path, "wb") as buffer:
+                    buffer.write(contents)
+                
+                cert_paths.append(f"/static/uploads/certificates/{filename}")
+        
+        # Ensure SQLAlchemy detects the list change
+        profile.certificates = list(cert_paths)
+        profile.experience = experience
+        profile.verification_status = "pending"
+        db.commit()
+    except Exception as e:
+        print(f"CERTIFICATE UPLOAD ERROR: {e}")
+        return RedirectResponse(url="/dashboard?error=Certificate upload failed", status_code=status.HTTP_302_FOUND)
+    
+    return RedirectResponse(url="/dashboard", status_code=status.HTTP_302_FOUND)
+
+@app.post("/admin/verify-counsellor/{counsellor_id}")
+async def verify_counsellor(
+    counsellor_id: int,
+    request: Request,
+    verification_status: str = Form(...), # "approved" or "rejected"
+    db: Session = Depends(get_db)
+):
+    current_user = get_current_user(request, db)
+    if not current_user or current_user.role != "admin":
+         # Safety Check: Allow access if user email matches ADMIN_EMAIL env var
+        admin_email = os.getenv("ADMIN_EMAIL")
+        if not admin_email or current_user.email != admin_email:
+            return RedirectResponse(url="/dashboard", status_code=status.HTTP_302_FOUND)
+            
+    profile = db.query(models.CounsellorProfile).filter(models.CounsellorProfile.user_id == counsellor_id).first()
+    if profile:
+        profile.verification_status = verification_status
+        profile.is_verified = (verification_status == "approved")
+        db.commit()
+    
+    return RedirectResponse(url="/admin", status_code=status.HTTP_302_FOUND)
+
 @app.get("/counsellors", response_class=HTMLResponse)
 async def list_counsellors(request: Request, db: Session = Depends(get_db)):
     user = get_current_user(request, db)
     if not user:
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
         
-    counsellors = db.query(models.CounsellorProfile).all()
+    counsellors = db.query(models.CounsellorProfile).filter(models.CounsellorProfile.is_verified == True).all()
     
     return templates.TemplateResponse("counsellors_list.html", {"request": request, "user": user, "counsellors": counsellors})
 
