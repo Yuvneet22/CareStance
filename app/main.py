@@ -326,19 +326,59 @@ async def auth_callback(request: Request, db: Session = Depends(get_db)):
     email = user_info.get('email')
     full_name = user_info.get('name', 'Google User')
     
-    # Check if user exists, otherwise create
+    # Check if user exists, otherwise create with no role (will be selected next)
     user = db.query(models.User).filter(models.User.email == email).first()
+    is_new_user = False
     if not user:
-        # Create Google User with a random password since they use OAuth
         hashed_pw = get_password_hash(os.urandom(24).hex())
-        user = models.User(email=email, hashed_password=hashed_pw, full_name=full_name, contact_number=None)
+        user = models.User(email=email, hashed_password=hashed_pw, full_name=full_name, contact_number=None, role=None)
         db.add(user)
         db.commit()
         db.refresh(user)
+        is_new_user = True
     
-    response = RedirectResponse(url="/dashboard", status_code=status.HTTP_302_FOUND)
+    # New users must select their role first
+    redirect_url = "/select-role" if is_new_user else "/dashboard"
+    response = RedirectResponse(url=redirect_url, status_code=status.HTTP_302_FOUND)
     response.set_cookie(key="user_id", value=str(user.id))
     return response
+
+@app.get("/select-role", response_class=HTMLResponse)
+async def select_role_page(request: Request, db: Session = Depends(get_db)):
+    user = get_current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+    # If user already has a role, skip this page
+    if user.role:
+        return RedirectResponse(url="/dashboard", status_code=status.HTTP_302_FOUND)
+    return templates.TemplateResponse("select_role.html", {"request": request, "user": user})
+
+@app.post("/select-role")
+async def select_role(
+    request: Request,
+    role: str = Form(...),
+    db: Session = Depends(get_db)
+):
+    user = get_current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+    
+    # Validate role
+    if role not in ("student", "counsellor"):
+        return RedirectResponse(url="/select-role", status_code=status.HTTP_302_FOUND)
+    
+    user.role = role
+    db.commit()
+    
+    # Create counsellor profile if needed
+    if role == "counsellor":
+        existing_profile = db.query(models.CounsellorProfile).filter(models.CounsellorProfile.user_id == user.id).first()
+        if not existing_profile:
+            c_profile = models.CounsellorProfile(user_id=user.id)
+            db.add(c_profile)
+            db.commit()
+    
+    return RedirectResponse(url="/dashboard", status_code=status.HTTP_302_FOUND)
 
 # --- Assessment Data ---
 
@@ -594,6 +634,10 @@ async def dashboard(request: Request, db: Session = Depends(get_db)):
     user = get_current_user(request, db)
     if not user:
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+    
+    # New OAuth users must select a role first
+    if not user.role:
+        return RedirectResponse(url="/select-role", status_code=status.HTTP_302_FOUND)
     
     if user.role == "counsellor":
         profile = db.query(models.CounsellorProfile).filter(models.CounsellorProfile.user_id == user.id).first()

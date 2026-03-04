@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+
+{% block title %}Choose Your Role{% endblock %}
+
+{% block content %}
+<div
+    class="min-h-screen flex items-center justify-center relative overflow-hidden bg-gradient-to-br from-indigo-100 via-white to-violet-100 -mt-8">
+
+    <!-- Background Blur Shapes -->
+    <div
+        class="absolute -top-32 -left-32 w-96 h-96 bg-violet-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-pulse">
+    </div>
+    <div
+        class="absolute -bottom-32 -right-32 w-96 h-96 bg-indigo-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-pulse">
+    </div>
+
+    <div class="relative max-w-lg w-full px-6">
+        <div class="bg-white/70 backdrop-blur-xl p-10 rounded-3xl shadow-2xl border border-white/40">
+
+            <!-- Header -->
+            <div class="text-center space-y-3">
+                <div
+                    class="mx-auto w-16 h-16 bg-gradient-to-br from-violet-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-violet-200 mb-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                </div>
+                <h2 class="text-3xl font-extrabold text-slate-900 tracking-tight">
+                    Welcome, <span class="text-violet-600">{{ user.full_name }}!</span>
+                </h2>
+                <p class="text-sm text-slate-500">
+                    One last step — tell us who you are so we can personalize your experience.
+                </p>
+            </div>
+
+            <!-- Role Selection Form -->
+            <form action="/select-role" method="POST" x-data="{ role: '' }" class="mt-8 space-y-6">
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <!-- Scholar Card -->
+                    <label class="cursor-pointer group">
+                        <input type="radio" name="role" value="student" class="hidden peer" x-model="role">
+                        <div
+                            class="relative p-6 text-center border-2 rounded-2xl transition-all duration-300
+                                    border-slate-200 hover:border-violet-300 hover:shadow-md
+                                    peer-checked:border-violet-600 peer-checked:bg-gradient-to-br peer-checked:from-violet-50 peer-checked:to-indigo-50 peer-checked:shadow-lg peer-checked:shadow-violet-100">
+
+                            <div class="text-5xl mb-3 group-hover:scale-110 transition-transform duration-300">🎓</div>
+                            <h3 class="text-lg font-extrabold text-slate-800 peer-checked:text-violet-700">Scholar</h3>
+                            <p class="text-xs text-slate-400 mt-1">Get career guidance, take assessments & book sessions
+                            </p>
+
+                            <!-- Checkmark -->
+                            <div class="absolute top-3 right-3 w-6 h-6 rounded-full bg-violet-600 text-white items-center justify-center hidden peer-checked:flex shadow-md"
+                                :class="role === 'student' ? 'flex' : 'hidden'">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                                    stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3"
+                                        d="M5 13l4 4L19 7" />
+                                </svg>
+                            </div>
+                        </div>
+                    </label>
+
+                    <!-- Life Coach Card -->
+                    <label class="cursor-pointer group">
+                        <input type="radio" name="role" value="counsellor" class="hidden peer" x-model="role">
+                        <div
+                            class="relative p-6 text-center border-2 rounded-2xl transition-all duration-300
+                                    border-slate-200 hover:border-violet-300 hover:shadow-md
+                                    peer-checked:border-violet-600 peer-checked:bg-gradient-to-br peer-checked:from-violet-50 peer-checked:to-indigo-50 peer-checked:shadow-lg peer-checked:shadow-violet-100">
+
+                            <div class="text-5xl mb-3 group-hover:scale-110 transition-transform duration-300">🧠</div>
+                            <h3 class="text-lg font-extrabold text-slate-800 peer-checked:text-violet-700">Life Coach
+                            </h3>
+                            <p class="text-xs text-slate-400 mt-1">Offer guidance, manage appointments & help scholars
+                            </p>
+
+                            <!-- Checkmark -->
+                            <div class="absolute top-3 right-3 w-6 h-6 rounded-full bg-violet-600 text-white items-center justify-center hidden peer-checked:flex shadow-md"
+                                :class="role === 'counsellor' ? 'flex' : 'hidden'">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                                    stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3"
+                                        d="M5 13l4 4L19 7" />
+                                </svg>
+                            </div>
+                        </div>
+                    </label>
+                </div>
+
+                <!-- Submit -->
+                <button type="submit"
+                    class="w-full py-3.5 rounded-xl text-white font-bold bg-gradient-to-r from-violet-600 to-indigo-600 hover:scale-[1.03] hover:shadow-xl transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
+                    :disabled="!role">
+                    Continue →
+                </button>
+
+                <p class="text-center text-xs text-slate-400">
+                    You can't change this later. Choose wisely! ✨
+                </p>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
