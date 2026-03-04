@@ -696,13 +696,17 @@ async def admin_dashboard(request: Request, db: Session = Depends(get_db)):
         # Fetch all counsellor profiles with session counts
         all_counsellors = db.query(models.CounsellorProfile).all()
         for cp in all_counsellors:
-            cp.session_count = db.query(models.Appointment).filter(
-                models.Appointment.counsellor_id == cp.user_id,
-                models.Appointment.status == "completed"
-            ).count()
-            cp.total_sessions = db.query(models.Appointment).filter(
-                models.Appointment.counsellor_id == cp.user_id
-            ).count()
+            try:
+                cp.session_count = db.query(models.Appointment).filter(
+                    models.Appointment.counsellor_id == cp.user_id,
+                    models.Appointment.status == "completed"
+                ).count()
+                cp.total_sessions = db.query(models.Appointment).filter(
+                    models.Appointment.counsellor_id == cp.user_id
+                ).count()
+            except Exception:
+                cp.session_count = 0
+                cp.total_sessions = 0
         
         return templates.TemplateResponse("admin_dashboard.html", {
             "request": request, 
@@ -716,11 +720,7 @@ async def admin_dashboard(request: Request, db: Session = Depends(get_db)):
     except Exception as e:
         import traceback
         print(f"ADMIN DASHBOARD ERROR: {traceback.format_exc()}")
-        return templates.TemplateResponse("dashboard.html", {
-            "request": request,
-            "user": user,
-            "error": f"Internal Error: {str(e)}"
-        })
+        return RedirectResponse(url=f"/dashboard?error=Admin+Error:+{str(e)[:100]}", status_code=status.HTTP_302_FOUND)
 
 @app.post("/admin/users/{user_id}/delete")
 async def delete_user(user_id: int, request: Request, db: Session = Depends(get_db)):
