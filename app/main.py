@@ -747,6 +747,20 @@ async def delete_user(user_id: int, request: Request, db: Session = Depends(get_
 
 # --- Counsellor Routes ---
 
+@app.post("/counsellor/accept-tnc")
+async def accept_tnc(request: Request, db: Session = Depends(get_db)):
+    user = get_current_user(request, db)
+    if not user or user.role != "counsellor":
+        return RedirectResponse(url="/dashboard", status_code=status.HTTP_302_FOUND)
+    
+    profile = db.query(models.CounsellorProfile).filter(models.CounsellorProfile.user_id == user.id).first()
+    if profile:
+        profile.tnc_accepted = True
+        profile.tnc_accepted_at = datetime.datetime.utcnow()
+        db.commit()
+    
+    return RedirectResponse(url="/dashboard", status_code=status.HTTP_302_FOUND)
+
 @app.post("/counsellor/update")
 async def counsellor_update(
     request: Request,

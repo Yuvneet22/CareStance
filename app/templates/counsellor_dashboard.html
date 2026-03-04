@@ -42,6 +42,128 @@
 </div>
 {% endif %}
 
+{% if profile and not profile.tnc_accepted and not profile.is_blocked %}
+<!-- Terms & Conditions Acceptance Required -->
+<div class="mb-6 bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl border border-violet-200 overflow-hidden"
+    x-data="{ agreed: false }">
+    <div class="px-8 py-5 bg-gradient-to-r from-violet-600 to-indigo-600 flex items-center gap-3">
+        <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+        </div>
+        <div>
+            <h3 class="text-lg font-extrabold text-white">Terms & Conditions Required</h3>
+            <p class="text-white/80 text-xs">You must accept the Terms & Conditions to use your counsellor account.</p>
+        </div>
+    </div>
+
+    <div class="px-8 py-6 max-h-[50vh] overflow-y-auto text-sm text-slate-600 leading-relaxed space-y-4">
+        <div>
+            <h4 class="font-bold text-slate-800 mb-1">1. Introduction</h4>
+            <p>These Terms and Conditions govern the relationship between CareStance and the counselors (life coaches)
+                who provide services through the CareStance platform. By registering, you agree to comply with all the
+                terms below.</p>
+        </div>
+        <div>
+            <h4 class="font-bold text-slate-800 mb-1">2. Revenue Sharing Policy</h4>
+            <p>For every paid video counseling session:</p>
+            <ul class="list-disc list-inside mt-1 space-y-1 text-slate-500">
+                <li>You will receive <span class="font-bold text-emerald-600">70%</span> of the session fee.</li>
+                <li>CareStance retains <span class="font-bold text-slate-700">30%</span> as platform service charge.
+                </li>
+            </ul>
+        </div>
+        <div>
+            <h4 class="font-bold text-slate-800 mb-1">3. Professional Conduct</h4>
+            <p>You must maintain a high level of professionalism. The following are <span
+                    class="text-rose-500 font-semibold">strictly prohibited</span>:</p>
+            <ul class="list-disc list-inside mt-1 space-y-1 text-slate-500">
+                <li>Abusive, offensive, discriminatory, or inappropriate language</li>
+                <li>Harassment, intimidation, or exploitation of users</li>
+                <li>Sharing misleading or false information intentionally</li>
+            </ul>
+            <p class="mt-1 text-rose-500 font-medium text-xs">Violations may result in suspension, termination, or legal
+                action.</p>
+        </div>
+        <div>
+            <h4 class="font-bold text-slate-800 mb-1">4. Session Guidelines</h4>
+            <ul class="list-disc list-inside space-y-1 text-slate-500">
+                <li>All sessions must be conducted <strong>only through CareStance</strong></li>
+                <li>Do not move users to external platforms for private consultations</li>
+                <li>Attend sessions on time and maintain a respectful environment</li>
+            </ul>
+        </div>
+        <div>
+            <h4 class="font-bold text-slate-800 mb-1">5. Confidentiality & Privacy</h4>
+            <ul class="list-disc list-inside space-y-1 text-slate-500">
+                <li>Personal information shared during sessions must remain confidential</li>
+                <li>Recording or distributing session content without consent is prohibited</li>
+            </ul>
+        </div>
+        <div>
+            <h4 class="font-bold text-slate-800 mb-1">6. Payment & Refund Policy</h4>
+            <ul class="list-disc list-inside space-y-1 text-slate-500">
+                <li>Payments are released after successful session completion</li>
+                <li>Cancellations without valid reason may result in refund deductions</li>
+            </ul>
+        </div>
+        <div>
+            <h4 class="font-bold text-slate-800 mb-1">7. Platform Integrity</h4>
+            <ul class="list-disc list-inside space-y-1 text-slate-500">
+                <li>Do not manipulate ratings or reviews</li>
+                <li>Do not create fake accounts or bookings</li>
+                <li>Do not promote competing services during sessions</li>
+            </ul>
+        </div>
+        <div>
+            <h4 class="font-bold text-slate-800 mb-1">8. Compliance with Laws</h4>
+            <p>You must comply with all applicable laws related to online counseling. Illegal activity leads to
+                immediate termination.</p>
+        </div>
+        <div>
+            <h4 class="font-bold text-slate-800 mb-1">9. Account Suspension or Termination</h4>
+            <p>CareStance may suspend or terminate your account if you violate terms, receive multiple complaints, or
+                engage in fraudulent behavior.</p>
+        </div>
+        <div>
+            <h4 class="font-bold text-slate-800 mb-1">10. Liability Disclaimer</h4>
+            <p>CareStance acts as a connection platform. We are not responsible for personal advice provided during
+                sessions.</p>
+        </div>
+        <div>
+            <h4 class="font-bold text-slate-800 mb-1">11. Modification of Terms</h4>
+            <p>CareStance reserves the right to modify these terms. Significant changes will be communicated.</p>
+        </div>
+        <div>
+            <h4 class="font-bold text-slate-800 mb-1">12. Legal Action Clause</h4>
+            <p class="text-rose-500 font-medium">Any offensive, fraudulent, abusive, or illegal activity may result in
+                immediate suspension and legal proceedings under applicable law.</p>
+        </div>
+    </div>
+
+    <div class="px-8 py-5 border-t border-slate-100 space-y-4">
+        <label class="flex items-start gap-3 cursor-pointer select-none group">
+            <input type="checkbox" x-model="agreed"
+                class="mt-0.5 w-5 h-5 rounded border-slate-300 text-violet-600 focus:ring-violet-500 transition">
+            <span class="text-sm text-slate-600 group-hover:text-slate-800 transition-colors">
+                I have read, understood, and agree to abide by these
+                <span class="font-bold text-violet-600">Terms & Conditions</span>.
+            </span>
+        </label>
+        <form action="/counsellor/accept-tnc" method="POST">
+            <button type="submit"
+                class="w-full sm:w-auto px-8 py-3 rounded-xl font-bold text-white bg-gradient-to-r from-violet-600 to-indigo-600 hover:scale-[1.02] hover:shadow-xl transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
+                :disabled="!agreed">
+                I Agree & Continue →
+            </button>
+        </form>
+    </div>
+</div>
+{% endif %}
+
 <div class="bg-white/70 backdrop-blur-xl rounded-3xl overflow-hidden shadow-2xl border border-white/50">
     <div class="px-6 py-6 sm:px-8 bg-indigo-50/50 border-b border-indigo-100 flex justify-between items-center">
         <div class="flex items-center gap-6">
