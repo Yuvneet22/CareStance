@@ -2207,34 +2207,43 @@ async def generate_career_path(request: Request, path_req: CareerPathRequest, db
     final_insight = result.final_analysis or ""
 
     prompt = f"""
-    You are an expert Career Architect.
+    You are an expert 'Student Success Architect' and Career Mentor.
     
     Student Profile:
-    - Current Stage: {current_class}
-    - Archetype: {archetype}
-    - Personality: {personality}
+    - Current Stage: {current_class} (Handle this as the starting point)
+    - Archetype: {archetype} (Influences the learning style and interaction)
+    - Personality: {personality} (Determines the type of environment suggested)
     - Goal Career: {path_req.career_title}
-    - Psychometric Analysis Bits: {phase3_insight[:300]}
-    - Recommendation Context: {final_insight[:300]}
+    - Deep Analysis Context: {phase3_insight[:400]}
+    - Recommendation Engine Notes: {final_insight[:400]}
 
     TASK:
-    Generate a highly realistic, comprehensive "Success Roadmap" from their current stage to a professional role in {path_req.career_title}.
-    Provide 6 detailed steps.
+    Create a "Zero-to-Hero" Career Roadmap. The journey MUST start from absolute BASICS (Phase 1-2) and evolve into PROFESSIONAL/PRO level (Phase 5-6).
     
-    For EACH step, include:
-    1. Action Name (Concise)
-    2. Description (2-3 sentences of strategic advice)
-    3. Skills to acquire (List 3 specific skills)
-    4. Recommended Courses/Learning (List 2 specific platforms or certifications)
-    5. Project Idea (1 practical project to build)
-    6. Timeline (Estimated duration or month/year)
+    Tone: 
+    - Student-friendly, encouraging, and visionary. 
+    - Use "We" and "You" to make it feel like a partnership. 
+    - Avoid dry corporate jargon where simple, inspiring words work better.
 
-    Also provide:
-    - Internships: 2 specific types of internship roles or companies to target.
+    Provide exactly 6 Milestone Steps:
+    - Step 1-2: Foundations (The "Basics" - Learning, early exploration, building mindset). 
+    - Step 3-4: Intermediate (Core skill building, first real projects, networking).
+    - Step 5-6: Professional (Specialization, portfolio polishing, high-level internships, job readiness).
+
+    For EACH step, include:
+    1. Action Name (Catchy & motivating)
+    2. Description (Explain WHY this step matters for their specific profile - 3 sentences)
+    3. Skills to acquire (3 specific skills relevant to {path_req.career_title})
+    4. Recommended Learning (2 specific, modern resources - e.g. Coursera, YouTube channels, Books)
+    5. Student Project (1 "cool" project name and brief description that a student would enjoy building)
+    6. Timeline (Realistic estimate, e.g., "Months 1-3")
+
+    Additional Career Insights:
+    - Internships: 2 specific "Dream Internships" or types of roles to hunt for.
     - Career Outlook:
-        - Entry-level vs Senior Salary estimates (Range in INR or USD based on location).
-        - Top 3 Companies known for hiring this role.
-        - Future Scope: A 2-sentence outlook on growth potential and industry shifts.
+        - Salary Journey: Entry-level to Senior potential (in INR or USD as appropriate).
+        - Top 3 Companies: Famous places that hire this role.
+        - Future Scope: Why this career is a "Safe Bet" or "High Growth" path for the next decade.
 
     OUTPUT FORMAT (VALID JSON ONLY):
     {{
@@ -2242,24 +2251,24 @@ async def generate_career_path(request: Request, path_req: CareerPathRequest, db
       "path_steps": [
         {{ 
           "step": 1, 
-          "action": "Action Name", 
-          "description": "Description...", 
-          "skills": ["Skill 1", "Skill 2", "Skill 3"],
-          "courses": ["Course 1", "Course 2"],
-          "project": "Project idea...",
-          "timeline": "e.g. 3-6 Months",
+          "action": "...", 
+          "description": "...", 
+          "skills": ["...", "...", "..."],
+          "courses": ["...", "..."],
+          "project": "...",
+          "timeline": "...",
           "completed": false
         }},
-        ...
+        ... (Total 6)
       ],
-      "internships": ["Internship 1", "Internship 2"],
+      "internships": ["...", "..."],
       "career_outlook": {{
-        "salary_range": "e.g. ₹5L - ₹25L+",
-        "top_companies": ["Company 1", "Company 2", "Company 3"],
-        "future_scope": "Scope details..."
+        "salary_range": "...",
+        "top_companies": ["...", "...", "..."],
+        "future_scope": "..."
       }},
       "reminders": [
-        {{ "milestone": "Milestone Name", "reminder": "Specific alert/advice" }},
+        {{ "milestone": "...", "reminder": "..." }},
         ...
       ]
     }}

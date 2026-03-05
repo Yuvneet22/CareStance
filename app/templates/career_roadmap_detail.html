@@ -33,7 +33,7 @@
                 <span id="progress-text" class="text-indigo-600 font-bold">{{ path.path_data.progress_percentage|default(0) }}% Completed</span>
             </div>
             <div class="w-full bg-slate-100 rounded-full h-4 overflow-hidden">
-                <div id="progress-bar" class="bg-indigo-600 h-full transition-all duration-700 ease-out" style="width: {{ path.path_data.progress_percentage|default(0) }}%"></div>
+                <div id="progress-bar" class="bg-indigo-600 h-full transition-all duration-700 ease-out" style="width:{{ path.path_data.progress_percentage|default(0) }}%"></div>
             </div>
         </div>
         {% endif %}
@@ -57,30 +57,42 @@
                             {% set steps = path.path_data.steps if path.path_data is mapping and 'steps' in path.path_data else path.path_data %}
                             {% for step in steps %}
                             <div class="relative flex gap-8 group" id="step-container-{{ loop.index0 }}">
+                                <!-- Vertical Progress Highlight -->
+                                {% if step.completed %}
+                                <div class="absolute left-6 top-0 bottom-0 w-0.5 bg-emerald-500 z-0"></div>
+                                {% endif %}
+
                                 <!-- Step Circle / Checkbox -->
                                 <div class="relative z-10 w-12 h-12 rounded-2xl bg-white border-2 {% if step.completed %}border-emerald-500 text-emerald-500{% else %}border-slate-100 text-slate-400{% endif %} shadow-sm flex items-center justify-center transition-all duration-300">
-                                    {% if path.path_data is mapping and 'steps' in path.path_data %}
                                     <input type="checkbox" 
                                            class="absolute opacity-0 w-full h-full cursor-pointer z-20" 
                                            onchange="toggleStep({{ path.id }}, {{ loop.index0 }})"
+                                           title="Mark step as complete"
+                                           aria-label="Mark step {{ loop.index }} as complete"
                                            {% if step.completed %}checked{% endif %}>
                                     {% if step.completed %}
                                     <i class="fas fa-check"></i>
                                     {% else %}
                                     <span class="font-black">{{ loop.index }}</span>
                                     {% endif %}
-                                    {% else %}
-                                    <span class="font-black">{{ loop.index }}</span>
-                                    {% endif %}
                                 </div>
                                 
                                 <div class="flex-1">
-                                    <div class="flex justify-between items-start mb-2">
-                                        <h3 class="text-xl font-bold {% if step.completed %}text-slate-400 line-through{% else %}text-slate-900{% endif %} transition-all" id="step-title-{{ loop.index0 }}">
+                                    <div class="flex flex-wrap items-center gap-2 mb-2">
+                                        {% if loop.index <= 2 %}
+                                        <span class="text-[10px] font-black bg-blue-100 text-blue-600 px-2 py-0.5 rounded uppercase tracking-tighter">Level: Basics</span>
+                                        {% elif loop.index <= 4 %}
+                                        <span class="text-[10px] font-black bg-purple-100 text-purple-600 px-2 py-0.5 rounded uppercase tracking-tighter">Level: Intermediate</span>
+                                        {% else %}
+                                        <span class="text-[10px] font-black bg-amber-100 text-amber-600 px-2 py-0.5 rounded uppercase tracking-tighter">Level: Pro</span>
+                                        {% endif %}
+                                        
+                                        <h3 class="text-xl font-bold {% if step.completed %}text-slate-400 line-through{% else %}text-slate-900{% endif %} transition-all flex-1" id="step-title-{{ loop.index0 }}">
                                             {{ step.action }}
                                         </h3>
+                                        
                                         {% if step.timeline %}
-                                        <span class="text-xs font-bold bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full">{{ step.timeline }}</span>
+                                        <span class="text-xs font-bold bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full whitespace-nowrap">{{ step.timeline }}</span>
                                         {% endif %}
                                     </div>
                                     <p class="text-slate-600 leading-relaxed text-sm mb-4">
@@ -102,9 +114,12 @@
                                         {% if step.courses %}
                                         <div>
                                             <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Recommended Learning</p>
-                                            <ul class="text-xs text-slate-600 list-disc list-inside">
+                                            <ul class="text-xs text-slate-600 space-y-1">
                                                 {% for course in step.courses %}
-                                                <li>{{ course }}</li>
+                                                <li class="flex items-start gap-2">
+                                                    <i class="fas fa-play-circle text-indigo-400 mt-0.5"></i>
+                                                    <span>{{ course }}</span>
+                                                </li>
                                                 {% endfor %}
                                             </ul>
                                         </div>
@@ -246,12 +261,12 @@ async function toggleStep(pathId, stepIndex) {
                 title.classList.add('text-slate-400', 'line-through');
                 circle.classList.remove('border-slate-100', 'text-slate-400');
                 circle.classList.add('border-emerald-500', 'text-emerald-500');
-                circle.innerHTML = `<input type="checkbox" class="absolute opacity-0 w-full h-full cursor-pointer z-20" onchange="toggleStep(${pathId}, ${stepIndex})" checked><i class="fas fa-check"></i>`;
+                circle.innerHTML = `<input type="checkbox" class="absolute opacity-0 w-full h-full cursor-pointer z-20" onchange="toggleStep(${pathId}, ${stepIndex})" checked title="Mark step as complete" aria-label="Mark step ${stepIndex + 1} as complete"><i class="fas fa-check"></i>`;
             } else {
                 title.classList.remove('text-slate-400', 'line-through');
                 circle.classList.add('border-slate-100', 'text-slate-400');
                 circle.classList.remove('border-emerald-500', 'text-emerald-500');
-                circle.innerHTML = `<input type="checkbox" class="absolute opacity-0 w-full h-full cursor-pointer z-20" onchange="toggleStep(${pathId}, ${stepIndex})"><span class="font-black">${stepIndex + 1}</span>`;
+                circle.innerHTML = `<input type="checkbox" class="absolute opacity-0 w-full h-full cursor-pointer z-20" onchange="toggleStep(${pathId}, ${stepIndex})" title="Mark step as complete" aria-label="Mark step ${stepIndex + 1} as complete"><span class="font-black">${stepIndex + 1}</span>`;
             }
             
             // Update Progress Bar
