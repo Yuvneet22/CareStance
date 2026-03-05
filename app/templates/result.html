@@ -215,11 +215,18 @@
                 <div class="text-center mb-10">
                     <p class="text-slate-500 uppercase tracking-widest text-xs font-bold mb-2">You should choose</p>
                     <h1 class="text-4xl md:text-5xl font-black text-slate-900 mb-6">{{ result.recommended_stream }}</h1>
-                    <button onclick="generateRoadmap('{{ result.recommended_stream }}')" 
-                        class="inline-flex items-center gap-3 px-8 py-3 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-700 transition transform hover:-translate-y-1 shadow-xl shadow-indigo-100 group">
-                        <i class="fas fa-route group-hover:animate-pulse"></i>
-                        <span>Generate Detailed Roadmap</span>
-                    </button>
+                    <div class="flex flex-wrap justify-center gap-3">
+                        <button onclick="generateRoadmap('{{ result.recommended_stream }}')"
+                            class="inline-flex items-center gap-3 px-8 py-3 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-700 transition transform hover:-translate-y-1 shadow-xl shadow-indigo-100 group">
+                            <i class="fas fa-route group-hover:animate-pulse"></i>
+                            <span>Generate Detailed Roadmap</span>
+                        </button>
+                        <button onclick="generateCollegeRecs('{{ result.recommended_stream }}')"
+                            class="inline-flex items-center gap-3 px-8 py-3 bg-violet-600 text-white rounded-2xl font-bold hover:bg-violet-700 transition transform hover:-translate-y-1 shadow-xl shadow-violet-100 group">
+                            <i class="fas fa-university group-hover:animate-pulse"></i>
+                            <span>Find Top Colleges</span>
+                        </button>
+                    </div>
                 </div>
 
                 {% if result.final_analysis %}
@@ -283,7 +290,8 @@
                                 {{ loop.index }}
                             </div>
                             <div class="flex-1">
-                                <h3 class="text-xl font-bold text-slate-900 mb-2">{{ option.title if option is mapping else option }}</h3>
+                                <h3 class="text-xl font-bold text-slate-900 mb-2">{{ option.title if option is mapping
+                                    else option }}</h3>
                                 {% if option is mapping %}
                                 <p class="text-slate-600 mb-4 text-sm leading-relaxed">{{ option.reason }}</p>
 
@@ -313,9 +321,17 @@
                                     {% endif %}
                                 </div>
                                 {% endif %}
-                                <div class="mt-4 flex items-center gap-2 text-indigo-600 font-bold text-sm">
-                                    <span>Get Full Roadmap</span>
-                                    <i class="fas fa-arrow-right animate-pulse"></i>
+                                <div class="mt-4 flex items-center gap-4">
+                                    <div class="flex items-center gap-2 text-indigo-600 font-bold text-sm">
+                                        <span>Get Full Roadmap</span>
+                                        <i class="fas fa-arrow-right animate-pulse"></i>
+                                    </div>
+                                    <button
+                                        onclick="event.stopPropagation(); generateCollegeRecs('{{ option.title if option is mapping else option }}')"
+                                        class="flex items-center gap-2 text-violet-600 font-bold text-sm hover:text-violet-800 transition-colors">
+                                        <i class="fas fa-university"></i>
+                                        <span>Top Colleges</span>
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -332,11 +348,15 @@
             </div>
 
             <!-- Loading Overlay -->
-            <div id="loadingOverlay" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[9999] flex items-center justify-center">
+            <div id="loadingOverlay"
+                class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[9999] flex items-center justify-center">
                 <div class="bg-white p-8 rounded-3xl shadow-2xl text-center max-w-sm mx-4">
-                    <div class="w-20 h-20 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-6"></div>
-                    <h3 class="text-xl font-bold text-slate-900 mb-2">Architecting Your Path</h3>
-                    <p class="text-slate-500">Our AI is designing a custom roadmap for your unique profile...</p>
+                    <div
+                        class="w-20 h-20 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-6">
+                    </div>
+                    <h3 id="loadingTitle" class="text-xl font-bold text-slate-900 mb-2">Architecting Your Path</h3>
+                    <p id="loadingDesc" class="text-slate-500">Our AI is designing a custom roadmap for your unique
+                        profile...</p>
                 </div>
             </div>
 
@@ -344,7 +364,9 @@
                 async function generateRoadmap(careerTitle) {
                     const overlay = document.getElementById('loadingOverlay');
                     overlay.classList.remove('hidden');
-                    
+                    document.getElementById('loadingTitle').textContent = 'Architecting Your Path';
+                    document.getElementById('loadingDesc').textContent = 'Our AI is designing a custom roadmap for your unique profile...';
+
                     try {
                         const response = await fetch('/assessment/generate_path', {
                             method: 'POST',
@@ -353,12 +375,39 @@
                             },
                             body: JSON.stringify({ career_title: careerTitle }),
                         });
-                        
+
                         const data = await response.json();
                         if (data.success) {
                             window.location.href = `/career/roadmap/${data.path_id}`;
                         } else {
                             alert('Failed to generate roadmap. Please try again.');
+                            overlay.classList.add('hidden');
+                        }
+                    } catch (error) {
+                        console.error('Error:', error);
+                        alert('An error occurred. Please try again.');
+                        overlay.classList.add('hidden');
+                    }
+                }
+
+                async function generateCollegeRecs(careerTitle) {
+                    const overlay = document.getElementById('loadingOverlay');
+                    overlay.classList.remove('hidden');
+                    document.getElementById('loadingTitle').textContent = 'Finding Top Institutes';
+                    document.getElementById('loadingDesc').textContent = 'Our AI is curating the best colleges for your career goals...';
+
+                    try {
+                        const response = await fetch('/career/colleges/generate', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ career_title: careerTitle }),
+                        });
+
+                        const data = await response.json();
+                        if (data.success) {
+                            window.location.href = `/career/colleges/${data.rec_id}`;
+                        } else {
+                            alert('Failed to generate college recommendations. Please try again.');
                             overlay.classList.add('hidden');
                         }
                     } catch (error) {

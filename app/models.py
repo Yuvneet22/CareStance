@@ -142,7 +142,19 @@ class Appointment(Base):
     student = relationship("User", foreign_keys=[student_id], back_populates="student_appointments")
     counsellor = relationship("User", foreign_keys=[counsellor_id], back_populates="counsellor_appointments")
 
+class CollegeRecommendation(Base):
+    __tablename__ = "college_recommendations"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    career_title = Column(String)
+    college_data = Column(JSON)  # AI-generated list of colleges
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    user = relationship("User", back_populates="college_recommendations")
+
 User.counsellor_profile = relationship("CounsellorProfile", back_populates="user", uselist=False)
 User.student_appointments = relationship("Appointment", foreign_keys="Appointment.student_id", back_populates="student")
 User.counsellor_appointments = relationship("Appointment", foreign_keys="Appointment.counsellor_id", back_populates="counsellor")
+User.college_recommendations = relationship("CollegeRecommendation", back_populates="user", order_by="CollegeRecommendation.created_at.desc()")
 

@@ -37,19 +37,21 @@
             <div class="flex items-center gap-6">
                 <!-- Profile Image -->
                 <div class="relative group">
-                    <img src="{{ user.profile_photo if user.profile_photo else 'https://ui-avatars.com/api/?name=' + user.full_name + '&background=random' }}" 
-                         alt="Profile" 
-                         class="w-20 h-20 rounded-2xl object-cover border-4 border-white/20 shadow-xl">
-                    <button onclick="document.getElementById('photo-upload').click()" 
-                            class="absolute -bottom-2 -right-2 bg-indigo-600 text-white p-2 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                    <img src="{{ user.profile_photo if user.profile_photo else 'https://ui-avatars.com/api/?name=' + user.full_name + '&background=random' }}"
+                        alt="Profile" class="w-20 h-20 rounded-2xl object-cover border-4 border-white/20 shadow-xl">
+                    <button onclick="document.getElementById('photo-upload').click()"
+                        class="absolute -bottom-2 -right-2 bg-indigo-600 text-white p-2 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity">
                         <i class="fas fa-camera text-xs"></i>
                     </button>
-                    <form id="photo-form" action="/profile/upload-photo" method="POST" enctype="multipart/form-data" class="hidden">
-                        <input type="file" id="photo-upload" name="file" onchange="document.getElementById('photo-form').submit()" accept="image/*">
+                    <form id="photo-form" action="/profile/upload-photo" method="POST" enctype="multipart/form-data"
+                        class="hidden">
+                        <input type="file" id="photo-upload" name="file"
+                            onchange="document.getElementById('photo-form').submit()" accept="image/*">
                     </form>
                 </div>
 
-                <div class="flex items-center gap-3 bg-white/10 backdrop-blur-md px-5 py-3 rounded-2xl border border-white/10">
+                <div
+                    class="flex items-center gap-3 bg-white/10 backdrop-blur-md px-5 py-3 rounded-2xl border border-white/10">
                     <div
                         class="h-10 w-10 rounded-full bg-gradient-to-br from-emerald-400 to-green-600 flex items-center justify-center text-white font-bold shadow-lg">
                         {{ assessment.phase_2_category[0] | upper }}
@@ -61,16 +63,17 @@
                 </div>
             </div>
             {% else %}
-             <div class="relative group">
-                <img src="{{ user.profile_photo if user.profile_photo else 'https://ui-avatars.com/api/?name=' + user.full_name + '&background=random' }}" 
-                     alt="Profile" 
-                     class="w-20 h-20 rounded-2xl object-cover border-4 border-white/20 shadow-xl">
-                <button onclick="document.getElementById('photo-upload-basic').click()" 
-                        class="absolute -bottom-2 -right-2 bg-indigo-600 text-white p-2 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity">
+            <div class="relative group">
+                <img src="{{ user.profile_photo if user.profile_photo else 'https://ui-avatars.com/api/?name=' + user.full_name + '&background=random' }}"
+                    alt="Profile" class="w-20 h-20 rounded-2xl object-cover border-4 border-white/20 shadow-xl">
+                <button onclick="document.getElementById('photo-upload-basic').click()"
+                    class="absolute -bottom-2 -right-2 bg-indigo-600 text-white p-2 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity">
                     <i class="fas fa-camera text-xs"></i>
                 </button>
-                <form id="photo-form-basic" action="/profile/upload-photo" method="POST" enctype="multipart/form-data" class="hidden">
-                    <input type="file" id="photo-upload-basic" name="file" onchange="document.getElementById('photo-form-basic').submit()" accept="image/*">
+                <form id="photo-form-basic" action="/profile/upload-photo" method="POST" enctype="multipart/form-data"
+                    class="hidden">
+                    <input type="file" id="photo-upload-basic" name="file"
+                        onchange="document.getElementById('photo-form-basic').submit()" accept="image/*">
                 </form>
             </div>
             {% endif %}
@@ -472,8 +475,8 @@
                     </div>
                     <span class="text-sm font-bold text-slate-700">Resources</span>
                 </a>
-                <a href="/colleges"
-                    class="bg-white/80 p-4 rounded-2xl shadow-sm border border-slate-100 hover:border-violet-200 hover:shadow-md transition text-center group">
+                <a href="/career/colleges"
+                    class="bg-white/80 p-4 rounded-2xl shadow-sm border border-violet-200 shadow-violet-100 hover:border-violet-400 hover:shadow-md transition text-center group">
                     <div
                         class="w-10 h-10 mx-auto bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mb-2 group-hover:scale-110 transition">
                         <i class="fas fa-university"></i>
