@@ -148,6 +148,8 @@ def run_migrations():
                 migrations.append("ALTER TABLE counsellor_profiles ADD COLUMN is_verified BOOLEAN DEFAULT FALSE")
             if 'verification_status' not in cp_cols:
                 migrations.append("ALTER TABLE counsellor_profiles ADD COLUMN verification_status VARCHAR DEFAULT 'pending'")
+            if 'fee_locked' not in cp_cols:
+                migrations.append("ALTER TABLE counsellor_profiles ADD COLUMN fee_locked BOOLEAN DEFAULT FALSE")
         
         if migrations:
             with engine.connect() as conn:
