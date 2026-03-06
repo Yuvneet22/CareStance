@@ -150,6 +150,14 @@ def run_migrations():
                 migrations.append("ALTER TABLE counsellor_profiles ADD COLUMN verification_status VARCHAR DEFAULT 'pending'")
             if 'fee_locked' not in cp_cols:
                 migrations.append("ALTER TABLE counsellor_profiles ADD COLUMN fee_locked BOOLEAN DEFAULT FALSE")
+            if 'razorpay_account_id' not in cp_cols:
+                migrations.append("ALTER TABLE counsellor_profiles ADD COLUMN razorpay_account_id VARCHAR")
+            if 'onboarding_status' not in cp_cols:
+                migrations.append("ALTER TABLE counsellor_profiles ADD COLUMN onboarding_status VARCHAR DEFAULT 'not_started'")
+            if 'razorpay_contact_id' not in cp_cols:
+                migrations.append("ALTER TABLE counsellor_profiles ADD COLUMN razorpay_contact_id VARCHAR")
+            if 'razorpay_fund_account_id' not in cp_cols:
+                migrations.append("ALTER TABLE counsellor_profiles ADD COLUMN razorpay_fund_account_id VARCHAR")
         
         if migrations:
             with engine.connect() as conn:
@@ -169,6 +177,10 @@ def run_migrations():
 run_migrations()
 
 app = FastAPI(title="CareStance")
+
+# ─── Include Split Payments Router (Razorpay Route) ───────────────────────────
+from .routes.payments import router as payments_router
+app.include_router(payments_router)
 
 from fastapi.middleware.gzip import GZipMiddleware
 app.add_middleware(GZipMiddleware, minimum_size=1000)
@@ -773,6 +785,44 @@ async def admin_dashboard(request: Request, db: Session = Depends(get_db)):
             except Exception:
                 cp.session_count = 0
                 cp.total_sessions = 0
+
+        # ─── Payment Split Analytics ──────────────────────────────────────
+        from sqlalchemy import func as sql_func
+        try:
+            all_payments = db.query(models.Payment).order_by(models.Payment.created_at.desc()).limit(20).all()
+            all_transfers = db.query(models.Transfer).all()
+
+            total_revenue = db.query(sql_func.sum(models.Payment.amount)).filter(
+                models.Payment.status == "captured"
+            ).scalar() or 0.0
+
+            total_counselor_payouts = db.query(sql_func.sum(models.Transfer.amount)).filter(
+                models.Transfer.status == "processed"
+            ).scalar() or 0.0
+
+            platform_commission = total_revenue - total_counselor_payouts
+
+            pending_transfers = db.query(models.Transfer).filter(
+                models.Transfer.status == "pending"
+            ).count()
+
+            failed_transfers = db.query(models.Transfer).filter(
+                models.Transfer.status == "failed"
+            ).count()
+
+            captured_payments_count = db.query(models.Payment).filter(
+                models.Payment.status == "captured"
+            ).count()
+        except Exception as pe:
+            print(f"Payment analytics error: {pe}")
+            all_payments = []
+            all_transfers = []
+            total_revenue = 0.0
+            total_counselor_payouts = 0.0
+            platform_commission = 0.0
+            pending_transfers = 0
+            failed_transfers = 0
+            captured_payments_count = 0
         
         return templates.TemplateResponse("admin_dashboard.html", {
             "request": request, 
@@ -781,7 +831,15 @@ async def admin_dashboard(request: Request, db: Session = Depends(get_db)):
             "feedbacks": all_feedback,
             "tickets": all_tickets,
             "pending_counsellors": pending_counsellors,
-            "all_counsellors": all_counsellors
+            "all_counsellors": all_counsellors,
+            # Split payment data
+            "all_payments": all_payments,
+            "total_revenue": total_revenue,
+            "total_counselor_payouts": total_counselor_payouts,
+            "platform_commission": platform_commission,
+            "pending_transfers": pending_transfers,
+            "failed_transfers": failed_transfers,
+            "captured_payments_count": captured_payments_count,
         })
     except Exception as e:
         import traceback
