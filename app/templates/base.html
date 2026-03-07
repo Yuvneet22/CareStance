@@ -150,24 +150,52 @@
         }
 
         @keyframes blob {
-            0% { transform: translate(0px, 0px) scale(1); }
-            33% { transform: translate(30px, -50px) scale(1.1); }
-            66% { transform: translate(-20px, 20px) scale(0.9); }
-            100% { transform: translate(0px, 0px) scale(1); }
+            0% {
+                transform: translate(0px, 0px) scale(1);
+            }
+
+            33% {
+                transform: translate(30px, -50px) scale(1.1);
+            }
+
+            66% {
+                transform: translate(-20px, 20px) scale(0.9);
+            }
+
+            100% {
+                transform: translate(0px, 0px) scale(1);
+            }
         }
 
         /* AI Buddy Animations */
         @keyframes buddy-bounce {
-            0%, 100% { transform: translateY(0) scale(1); }
-            50% { transform: translateY(-10px) scale(1.05); }
+
+            0%,
+            100% {
+                transform: translateY(0) scale(1);
+            }
+
+            50% {
+                transform: translateY(-10px) scale(1.05);
+            }
         }
+
         .buddy-talking {
             animation: buddy-bounce 0.6s ease-in-out infinite;
         }
+
         @keyframes pulse-ring {
-            0% { transform: scale(0.8); opacity: 0.5; }
-            100% { transform: scale(2); opacity: 0; }
+            0% {
+                transform: scale(0.8);
+                opacity: 0.5;
+            }
+
+            100% {
+                transform: scale(2);
+                opacity: 0;
+            }
         }
+
         .pulse-ring {
             animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
         }
@@ -205,38 +233,43 @@
                 <!-- Desktop Menu -->
                 <div class="hidden md:flex md:items-center">
                     {% if user %}
+                    <a href="/dashboard"
+                        class="group mr-2 p-3 text-slate-600 hover:text-violet-600 bg-slate-50/50 hover:bg-violet-50/50 rounded-2xl flex items-center gap-0 hover:gap-3 transition-all duration-300">
+                        <i class="fas fa-home text-lg"></i>
+                        <span
+                            class="max-w-0 overflow-hidden group-hover:max-w-[150px] transition-all duration-300 whitespace-nowrap font-bold text-sm">Dashboard</span>
+                    </a>
                     <a href="/chatbot"
-                        class="mr-6 text-indigo-600 hover:text-indigo-800 font-bold flex items-center gap-1 transition-colors">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
-                            stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-                        </svg>
-                        Chat with AI
+                        class="group mr-2 p-3 text-indigo-600 hover:text-indigo-800 bg-indigo-50/30 hover:bg-indigo-50/50 rounded-2xl flex items-center gap-0 hover:gap-3 transition-all duration-300">
+                        <i class="fas fa-robot text-lg"></i>
+                        <span
+                            class="max-w-0 overflow-hidden group-hover:max-w-[150px] transition-all duration-300 whitespace-nowrap font-bold text-sm">Chat
+                            with AI</span>
+                    </a>
+                    <a href="/community"
+                        class="group mr-2 p-3 text-violet-600 hover:text-violet-800 bg-violet-50/30 hover:bg-violet-50/50 rounded-2xl flex items-center gap-0 hover:gap-3 transition-all duration-300">
+                        <i class="fas fa-users text-lg"></i>
+                        <span
+                            class="max-w-0 overflow-hidden group-hover:max-w-[150px] transition-all duration-300 whitespace-nowrap font-bold text-sm">Community</span>
                     </a>
                     <a href="/feedback"
-                        class="mr-6 text-emerald-600 hover:text-emerald-800 font-bold flex items-center gap-1 transition-colors">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
-                            stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.921-.755 1.688-1.54 1.118l-3.976-2.888a1 1 0 00-1.175 0l-3.976 2.888c-.784.57-1.838-.197-1.539-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-                        </svg>
-                        Feedback
+                        class="group mr-2 p-3 text-emerald-600 hover:text-emerald-800 bg-emerald-50/30 hover:bg-emerald-50/50 rounded-2xl flex items-center gap-0 hover:gap-3 transition-all duration-300">
+                        <i class="fas fa-star text-lg"></i>
+                        <span
+                            class="max-w-0 overflow-hidden group-hover:max-w-[150px] transition-all duration-300 whitespace-nowrap font-bold text-sm">Feedback</span>
                     </a>
                     <a href="/ticket"
-                        class="mr-6 text-blue-600 hover:text-blue-800 font-bold flex items-center gap-1 transition-colors">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
-                            stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" />
-                        </svg>
-                        Support
+                        class="group mr-4 p-3 text-blue-600 hover:text-blue-800 bg-blue-50/30 hover:bg-blue-50/50 rounded-2xl flex items-center gap-0 hover:gap-3 transition-all duration-300">
+                        <i class="fas fa-life-ring text-lg"></i>
+                        <span
+                            class="max-w-0 overflow-hidden group-hover:max-w-[150px] transition-all duration-300 whitespace-nowrap font-bold text-sm">Support</span>
                     </a>
                     {% if user.role == 'admin' %}
                     <a href="/admin"
-                        class="mr-6 text-violet-700 hover:text-violet-900 font-extrabold flex items-center gap-1 transition-colors">
-                        <i class="fas fa-user-shield"></i>
-                        Admin
+                        class="group mr-4 p-3 text-violet-700 hover:text-violet-900 bg-violet-100/30 hover:bg-violet-100/50 rounded-2xl flex items-center gap-0 hover:gap-3 transition-all duration-300">
+                        <i class="fas fa-user-shield text-lg"></i>
+                        <span
+                            class="max-w-0 overflow-hidden group-hover:max-w-[150px] transition-all duration-300 whitespace-nowrap font-extrabold text-sm">Admin</span>
                     </a>
                     {% endif %}
                     <span class="text-gray-700 mr-4 border-l pl-4 border-slate-300">Hello, {{ user.full_name }}</span>
@@ -282,6 +315,11 @@
                 <span class="text-slate-500 text-xs uppercase tracking-wider font-bold">Account</span>
                 <p class="text-slate-800 font-bold">{{ user.full_name }}</p>
             </div>
+            <a href="/dashboard"
+                class="block py-3 px-4 rounded-xl text-slate-700 font-bold hover:bg-slate-50 transition-colors flex items-center gap-2">
+                <i class="fas fa-home"></i>
+                Dashboard
+            </a>
             <a href="/chatbot"
                 class="block py-3 px-4 rounded-xl text-indigo-600 font-bold hover:bg-indigo-50 transition-colors flex items-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
@@ -290,6 +328,11 @@
                         d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
                 </svg>
                 Chat with AI
+            </a>
+            <a href="/community"
+                class="block py-3 px-4 rounded-xl text-violet-600 font-bold hover:bg-violet-50 transition-colors flex items-center gap-2">
+                <i class="fas fa-users"></i>
+                Community
             </a>
             <a href="/feedback"
                 class="block py-3 px-4 rounded-xl text-emerald-600 font-bold hover:bg-emerald-50 transition-colors flex items-center gap-2">

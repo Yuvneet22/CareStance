@@ -11,6 +11,7 @@ class User(Base):
     full_name = Column(String)
     contact_number = Column(String)
     profile_photo = Column(String, nullable=True)
+    bio = Column(Text, nullable=True)
     role = Column(String, default="student")
     
     assessment = relationship("AssessmentResult", back_populates="user", uselist=False)
@@ -166,6 +167,34 @@ User.counsellor_profile = relationship("CounsellorProfile", back_populates="user
 User.student_appointments = relationship("Appointment", foreign_keys="Appointment.student_id", back_populates="student")
 User.counsellor_appointments = relationship("Appointment", foreign_keys="Appointment.counsellor_id", back_populates="counsellor")
 User.college_recommendations = relationship("CollegeRecommendation", back_populates="user", order_by="CollegeRecommendation.created_at.desc()")
+
+
+class StudentConnection(Base):
+    """LinkedIn-style connections between students sharing similar archetypes."""
+    __tablename__ = "student_connections"
+
+    id = Column(Integer, primary_key=True, index=True)
+    requester_id = Column(Integer, ForeignKey("users.id"))
+    receiver_id = Column(Integer, ForeignKey("users.id"))
+    status = Column(String, default="pending")  # pending, accepted, rejected
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    requester = relationship("User", foreign_keys=[requester_id], backref="sent_connections")
+    receiver = relationship("User", foreign_keys=[receiver_id], backref="received_connections")
+
+class StudentMessage(Base):
+    """Messages between connected students."""
+    __tablename__ = "student_messages"
+
+    id = Column(Integer, primary_key=True, index=True)
+    sender_id = Column(Integer, ForeignKey("users.id"))
+    receiver_id = Column(Integer, ForeignKey("users.id"))
+    content = Column(Text)
+    timestamp = Column(DateTime(timezone=True), server_default=func.now())
+    is_read = Column(Boolean, default=False)
+
+    sender = relationship("User", foreign_keys=[sender_id], backref="sent_student_messages")
+    receiver = relationship("User", foreign_keys=[receiver_id], backref="received_student_messages")
 
 class Notification(Base):
     __tablename__ = "notifications"

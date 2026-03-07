@@ -9,34 +9,43 @@
     <!-- SIDEBAR: Context & Profile (Hidden on Mobile) -->
     <div class="hidden lg:flex flex-col w-80 gap-4 h-full shrink-0">
         <!-- Profile Card -->
-        <div class="bg-white/80 backdrop-blur-xl border border-white/50 rounded-3xl p-6 shadow-lg shadow-indigo-100/50 flex flex-col items-center text-center">
+        <div
+            class="bg-white/80 backdrop-blur-xl border border-white/50 rounded-3xl p-6 shadow-lg shadow-indigo-100/50 flex flex-col items-center text-center">
             <div class="relative w-24 h-24 mb-4">
                 <!-- Animated Orb Background -->
-                <div class="absolute inset-0 bg-gradient-to-tr from-violet-600 to-indigo-500 rounded-full blur-xl opacity-30 animate-pulse"></div>
+                <div
+                    class="absolute inset-0 bg-gradient-to-tr from-violet-600 to-indigo-500 rounded-full blur-xl opacity-30 animate-pulse">
+                </div>
                 <!-- The Orb -->
-                <div id="talking-buddy" class="relative w-full h-full bg-gradient-to-br from-violet-600 to-indigo-700 rounded-full border-4 border-white shadow-xl flex items-center justify-center overflow-hidden transition-transform duration-300">
-                    <div class="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(255,255,255,0.4),transparent)]"></div>
+                <div id="talking-buddy"
+                    class="relative w-full h-full bg-gradient-to-br from-violet-600 to-indigo-700 rounded-full border-4 border-white shadow-xl flex items-center justify-center overflow-hidden transition-transform duration-300">
+                    <div
+                        class="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(255,255,255,0.4),transparent)]">
+                    </div>
                     <span class="text-4xl relative z-10">🎓</span>
                 </div>
                 <!-- Status Dot -->
-                <div id="buddy-status" class="absolute bottom-1 right-1 w-5 h-5 bg-slate-400 border-2 border-white rounded-full shadow-md transition-colors duration-300"></div>
+                <div id="buddy-status"
+                    class="absolute bottom-1 right-1 w-5 h-5 bg-slate-400 border-2 border-white rounded-full shadow-md transition-colors duration-300">
+                </div>
             </div>
             <h2 class="text-lg font-bold text-slate-900">AI Career Guide</h2>
             <p class="text-xs text-slate-500 font-medium">Always here to help</p>
         </div>
 
         <!-- Stats / Context Card -->
-        <div class="bg-white/80 backdrop-blur-xl border border-white/50 rounded-3xl p-6 shadow-lg shadow-indigo-100/50 flex-1 overflow-y-auto custom-scrollbar">
+        <div
+            class="bg-white/80 backdrop-blur-xl border border-white/50 rounded-3xl p-6 shadow-lg shadow-indigo-100/50 flex-1 overflow-y-auto custom-scrollbar">
             <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Current Context</h3>
-            
+
             <div class="space-y-3">
                 <div class="p-3 bg-indigo-50 rounded-xl border border-indigo-100">
                     <p class="text-xs text-indigo-500 font-bold mb-1 uppercase">Personality</p>
                     <p class="text-sm font-bold text-slate-800">
                         {% if user.assessment %}
-                            {{ user.assessment.phase_2_category|default("Not Assessed") }}
+                        {{ user.assessment.phase_2_category|default("Not Assessed") }}
                         {% else %}
-                            Not Assessed
+                        Not Assessed
                         {% endif %}
                     </p>
                 </div>
@@ -44,9 +53,9 @@
                     <p class="text-xs text-violet-500 font-bold mb-1 uppercase">Goal Status</p>
                     <p class="text-sm font-bold text-slate-800">
                         {% if user.assessment %}
-                            {{ user.assessment.goal_status|default("Pending") }}
+                        {{ user.assessment.goal_status|default("Pending") }}
                         {% else %}
-                            Pending
+                        Pending
                         {% endif %}
                     </p>
                 </div>
@@ -55,13 +64,16 @@
             <div class="mt-6 pt-6 border-t border-slate-100">
                 <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Try Asking:</p>
                 <ul class="text-xs text-slate-500 space-y-2.5">
-                    <li class="flex items-start cursor-pointer hover:text-indigo-600 transition" onclick="fillInput('What careers match my personality?')">
+                    <li class="flex items-start cursor-pointer hover:text-indigo-600 transition"
+                        onclick="fillInput('What careers match my personality?')">
                         <span class="mr-2 text-indigo-400">•</span> What matches my personality?
                     </li>
-                    <li class="flex items-start cursor-pointer hover:text-indigo-600 transition" onclick="fillInput('Which entrance exams should I take?')">
+                    <li class="flex items-start cursor-pointer hover:text-indigo-600 transition"
+                        onclick="fillInput('Which entrance exams should I take?')">
                         <span class="mr-2 text-indigo-400">•</span> Entrance exams for me?
                     </li>
-                    <li class="flex items-start cursor-pointer hover:text-indigo-600 transition" onclick="fillInput('Explain the salary trends for my stream.')">
+                    <li class="flex items-start cursor-pointer hover:text-indigo-600 transition"
+                        onclick="fillInput('Explain the salary trends for my stream.')">
                         <span class="mr-2 text-indigo-400">•</span> Salary trends?
                     </li>
                 </ul>
@@ -70,12 +82,16 @@
     </div>
 
     <!-- MAIN CHAT INTERFACE -->
-    <div class="flex-1 bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl shadow-indigo-200/50 border border-white/50 flex flex-col overflow-hidden relative">
-        
+    <div
+        class="flex-1 bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl shadow-indigo-200/50 border border-white/50 flex flex-col overflow-hidden relative">
+
         <!-- Header (Mobile Only) -->
-        <div class="lg:hidden p-4 bg-white/80 border-b border-slate-100 flex items-center justify-between backdrop-blur-md z-10">
+        <div
+            class="lg:hidden p-4 bg-white/80 border-b border-slate-100 flex items-center justify-between backdrop-blur-md z-10">
             <div class="flex items-center gap-3">
-                <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-violet-600 to-indigo-500 flex items-center justify-center text-white text-xs shadow-md">AI</div>
+                <div
+                    class="w-8 h-8 rounded-full bg-gradient-to-tr from-violet-600 to-indigo-500 flex items-center justify-center text-white text-xs shadow-md">
+                    AI</div>
                 <span class="font-bold text-slate-800">Career Guide</span>
             </div>
             <div id="mobile-status" class="w-2 h-2 rounded-full bg-slate-400"></div>
@@ -83,38 +99,63 @@
 
         <!-- Chat Area -->
         <div id="chat-box" class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 bg-slate-50/50 scroll-smooth">
-            
+
+            <!-- Security Notice -->
+            <div
+                class="p-3 md:p-4 bg-amber-50/50 border border-amber-100 rounded-2xl flex items-start gap-3 md:gap-4 mb-2">
+                <div class="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
+                    <i class="fas fa-shield-alt text-amber-600"></i>
+                </div>
+                <div>
+                    <p class="text-[10px] md:text-[11px] font-bold text-amber-800 uppercase tracking-wider mb-0.5">
+                        Security & Usage Notice</p>
+                    <p class="text-[9px] md:text-[10px] text-amber-700 leading-tight md:leading-normal">
+                        This chat is not end-to-end encrypted and monitored by admins for safety.
+                        <span class="hidden sm:inline">Users must avoid sharing inappropriate content.</span>
+                    </p>
+                </div>
+            </div>
+
             <!-- Welcome Message -->
             <div class="flex items-start gap-4 animate-fade-in-up">
-                <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center flex-shrink-0 shadow-lg shadow-indigo-200">
+                <div
+                    class="w-10 h-10 rounded-2xl bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center flex-shrink-0 shadow-lg shadow-indigo-200">
                     <span class="text-lg text-white">🤖</span>
                 </div>
-                <div class="bg-white text-slate-700 p-5 rounded-2xl rounded-tl-none shadow-sm border border-slate-100 max-w-[90%] sm:max-w-[80%]">
-                    <p class="leading-relaxed text-sm sm:text-base">Hello! I'm your personal AI career guide. I have access to your assessment data and can help you explore career paths, suggest degrees, or create a roadmap. What's on your mind today?</p>
+                <div
+                    class="bg-white text-slate-700 p-5 rounded-2xl rounded-tl-none shadow-sm border border-slate-100 max-w-[90%] sm:max-w-[80%]">
+                    <p class="leading-relaxed text-sm sm:text-base">Hello! I'm your personal AI career guide. I have
+                        access to your assessment data and can help you explore career paths, suggest degrees, or create
+                        a roadmap. What's on your mind today?</p>
                 </div>
             </div>
 
             <!-- History Loop -->
             {% for msg in history %}
-            <div class="flex items-start gap-4 {% if msg.sender == 'user' %}flex-row-reverse{% endif %} animate-fade-in-up">
+            <div
+                class="flex items-start gap-4 {% if msg.sender == 'user' %}flex-row-reverse{% endif %} animate-fade-in-up">
                 {% if msg.sender == 'user' %}
                 <!-- User Avatar -->
-                <div class="w-10 h-10 rounded-full bg-slate-200 border-2 border-white flex items-center justify-center flex-shrink-0 shadow-sm">
+                <div
+                    class="w-10 h-10 rounded-full bg-slate-200 border-2 border-white flex items-center justify-center flex-shrink-0 shadow-sm">
                     <span class="text-lg">👤</span>
                 </div>
                 <!-- User Bubble -->
-                <div class="bg-gradient-to-r from-violet-600 to-indigo-600 text-white rounded-2xl rounded-tr-none shadow-md p-4 sm:p-5 max-w-[90%] sm:max-w-[80%]">
+                <div
+                    class="bg-gradient-to-r from-violet-600 to-indigo-600 text-white rounded-2xl rounded-tr-none shadow-md p-4 sm:p-5 max-w-[90%] sm:max-w-[80%]">
                     <div class="prose prose-invert prose-sm max-w-none history-content">
                         {{ msg.content }}
                     </div>
                 </div>
                 {% else %}
                 <!-- AI Avatar -->
-                <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center flex-shrink-0 shadow-lg shadow-indigo-200">
+                <div
+                    class="w-10 h-10 rounded-2xl bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center flex-shrink-0 shadow-lg shadow-indigo-200">
                     <span class="text-lg">🤖</span>
                 </div>
                 <!-- AI Bubble -->
-                <div class="bg-white text-slate-700 rounded-2xl rounded-tl-none shadow-sm border border-slate-100 p-4 sm:p-5 max-w-[90%] sm:max-w-[80%]">
+                <div
+                    class="bg-white text-slate-700 rounded-2xl rounded-tl-none shadow-sm border border-slate-100 p-4 sm:p-5 max-w-[90%] sm:max-w-[80%]">
                     <div class="prose prose-indigo prose-sm max-w-none history-content">
                         {{ msg.content }}
                     </div>
@@ -122,23 +163,26 @@
                 {% endif %}
             </div>
             {% endfor %}
-            
+
             <!-- Filler div to ensure scrolling works well -->
             <div class="h-2"></div>
         </div>
 
         <!-- Input Area -->
         <div class="bg-white p-4 sm:p-6 border-t border-slate-100 relative z-20">
-            
+
             <!-- Suggestion Chips (Horizontal Scroll) -->
             <div class="flex gap-2 overflow-x-auto pb-3 mb-1 no-scrollbar">
-                <button onclick="fillInput('Create a study plan for me')" class="whitespace-nowrap px-4 py-1.5 rounded-full bg-slate-100 hover:bg-violet-50 text-slate-600 hover:text-violet-600 border border-slate-200 hover:border-violet-200 text-xs font-bold transition-colors">
+                <button onclick="fillInput('Create a study plan for me')"
+                    class="whitespace-nowrap px-4 py-1.5 rounded-full bg-slate-100 hover:bg-violet-50 text-slate-600 hover:text-violet-600 border border-slate-200 hover:border-violet-200 text-xs font-bold transition-colors">
                     📅 Study Plan
                 </button>
-                <button onclick="fillInput('What are the top colleges for my interest?')" class="whitespace-nowrap px-4 py-1.5 rounded-full bg-slate-100 hover:bg-violet-50 text-slate-600 hover:text-violet-600 border border-slate-200 hover:border-violet-200 text-xs font-bold transition-colors">
+                <button onclick="fillInput('What are the top colleges for my interest?')"
+                    class="whitespace-nowrap px-4 py-1.5 rounded-full bg-slate-100 hover:bg-violet-50 text-slate-600 hover:text-violet-600 border border-slate-200 hover:border-violet-200 text-xs font-bold transition-colors">
                     🏛️ Top Colleges
                 </button>
-                <button onclick="fillInput('Explain my strengths and weaknesses')" class="whitespace-nowrap px-4 py-1.5 rounded-full bg-slate-100 hover:bg-violet-50 text-slate-600 hover:text-violet-600 border border-slate-200 hover:border-violet-200 text-xs font-bold transition-colors">
+                <button onclick="fillInput('Explain my strengths and weaknesses')"
+                    class="whitespace-nowrap px-4 py-1.5 rounded-full bg-slate-100 hover:bg-violet-50 text-slate-600 hover:text-violet-600 border border-slate-200 hover:border-violet-200 text-xs font-bold transition-colors">
                     💪 My Strengths
                 </button>
             </div>
@@ -148,49 +192,98 @@
                     <input type="text" id="user-input"
                         class="w-full pl-5 pr-12 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 transition-all placeholder-slate-400 text-slate-700 shadow-inner"
                         placeholder="Type your question..." required autocomplete="off">
-                    
+
                     <!-- Voice Button inside input -->
                     <button type="button" id="voice-btn"
                         class="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-xl text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
                         title="Voice Input">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
                         </svg>
                     </button>
                 </div>
 
                 <button type="submit" id="send-btn"
                     class="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white p-4 rounded-2xl shadow-lg shadow-indigo-200 transition-all transform hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 transform rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 transform rotate-90" fill="none"
+                        viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                     </svg>
                 </button>
             </form>
-            <p class="text-center text-[10px] text-slate-400 mt-3 font-medium uppercase tracking-widest">AI generated • Check important info</p>
+            <p class="text-center text-[10px] text-slate-400 mt-3 font-medium uppercase tracking-widest">AI generated •
+                Check important info</p>
         </div>
     </div>
 </div>
 
 <!-- STYLES -->
 <style>
-    .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-    .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-    
-    .no-scrollbar::-webkit-scrollbar { display: none; }
-    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    .custom-scrollbar::-webkit-scrollbar {
+        width: 4px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 10px;
+    }
+
+    .no-scrollbar::-webkit-scrollbar {
+        display: none;
+    }
+
+    .no-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
 
     /* Markdown styling specifics */
-    .prose-sm ul { list-style-type: disc; padding-left: 1.2em; margin-top: 0.5em; margin-bottom: 0.5em; }
-    .prose-sm ol { list-style-type: decimal; padding-left: 1.2em; margin-top: 0.5em; margin-bottom: 0.5em; }
-    .prose-sm strong { color: inherit; font-weight: 700; }
-    .prose-sm a { color: #4f46e5; text-decoration: underline; }
+    .prose-sm ul {
+        list-style-type: disc;
+        padding-left: 1.2em;
+        margin-top: 0.5em;
+        margin-bottom: 0.5em;
+    }
+
+    .prose-sm ol {
+        list-style-type: decimal;
+        padding-left: 1.2em;
+        margin-top: 0.5em;
+        margin-bottom: 0.5em;
+    }
+
+    .prose-sm strong {
+        color: inherit;
+        font-weight: 700;
+    }
+
+    .prose-sm a {
+        color: #4f46e5;
+        text-decoration: underline;
+    }
 
     @keyframes fadeInUp {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
     }
-    .animate-fade-in-up { animation: fadeInUp 0.3s ease-out forwards; }
+
+    .animate-fade-in-up {
+        animation: fadeInUp 0.3s ease-out forwards;
+    }
 </style>
 
 <!-- SCRIPTS -->
@@ -357,13 +450,13 @@
             userInput.disabled = false;
             sendBtn.disabled = false;
             userInput.focus();
-            
+
             if (buddyOrb) buddyOrb.classList.remove('scale-110');
             if (buddyStatus) {
                 buddyStatus.classList.add('bg-slate-400');
                 buddyStatus.classList.remove('bg-emerald-400', 'shadow-[0_0_8px_#34d399]');
             }
-            
+
             // Final render to ensure clean markdown
             contentDiv.innerHTML = marked.parse(fullText);
         }

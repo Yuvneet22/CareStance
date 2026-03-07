@@ -128,6 +128,8 @@ def run_migrations():
         user_cols = get_columns('users')
         if user_cols and 'profile_photo' not in user_cols:
             migrations.append("ALTER TABLE users ADD COLUMN profile_photo VARCHAR")
+        if user_cols and 'bio' not in user_cols:
+            migrations.append("ALTER TABLE users ADD COLUMN bio TEXT")
         
         # CounsellorProfile table migrations
         cp_cols = get_columns('counsellor_profiles')
@@ -746,12 +748,19 @@ async def dashboard(request: Request, db: Session = Depends(get_db)):
     # Fetch student tickets
     tickets = db.query(models.Ticket).filter(models.Ticket.user_id == user.id).order_by(models.Ticket.timestamp.desc()).all()
     
+    # Count pending connection requests for badge
+    pending_conn_count = db.query(models.StudentConnection).filter(
+        models.StudentConnection.receiver_id == user.id,
+        models.StudentConnection.status == "pending"
+    ).count()
+    
     return templates.TemplateResponse("dashboard.html", {
         "request": request, 
         "user": user, 
         "assessment": assessment,
         "appointments": appointments,
-        "tickets": tickets
+        "tickets": tickets,
+        "pending_conn_count": pending_conn_count
     })
 
 @app.get("/admin", response_class=HTMLResponse)
@@ -2725,6 +2734,452 @@ async def view_college_detail(rec_id: int, request: Request, db: Session = Depen
         raise HTTPException(status_code=404, detail="College recommendation not found")
 
     return templates.TemplateResponse("college_detail.html", {"request": request, "user": user, "rec": rec})
+
+
+# ─── Student Community & Connection Routes ────────────────────────────────────
+
+@app.get("/community", response_class=HTMLResponse)
+async def community_page(request: Request, db: Session = Depends(get_db)):
+    """Community page: discover students grouped by archetype."""
+    user = get_current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+
+    # Get current user's archetype
+    my_assessment = db.query(models.AssessmentResult).filter(
+        models.AssessmentResult.user_id == user.id
+    ).first()
+    my_archetype = my_assessment.phase_2_category if my_assessment else None
+
+    # Get all students (except current user) who have completed their assessment
+    students_with_assessments = (
+        db.query(models.User, models.AssessmentResult)
+        .join(models.AssessmentResult, models.User.id == models.AssessmentResult.user_id)
+        .filter(
+            models.User.role == "student",
+            models.User.id != user.id,
+            models.AssessmentResult.phase_2_category.isnot(None)
+        )
+        .all()
+    )
+
+    # Build connection status map for current user
+    my_connections = db.query(models.StudentConnection).filter(
+        (models.StudentConnection.requester_id == user.id) |
+        (models.StudentConnection.receiver_id == user.id)
+    ).all()
+
+    connection_map = {}  # user_id -> {"status": ..., "conn_id": ..., "is_requester": bool}
+    for conn in my_connections:
+        other_id = conn.receiver_id if conn.requester_id == user.id else conn.requester_id
+        connection_map[other_id] = {
+            "status": conn.status,
+            "conn_id": conn.id,
+            "is_requester": conn.requester_id == user.id
+        }
+
+    # Group students by archetype
+    similar_students = []
+    other_archetypes = {}
+    for student, assessment in students_with_assessments:
+        student_data = {
+            "user": student,
+            "assessment": assessment,
+            "connection": connection_map.get(student.id)
+        }
+        if my_archetype and assessment.phase_2_category == my_archetype:
+            similar_students.append(student_data)
+        else:
+            archetype = assessment.phase_2_category
+            if archetype not in other_archetypes:
+                other_archetypes[archetype] = []
+            other_archetypes[archetype].append(student_data)
+
+    # Count pending received requests
+    pending_count = db.query(models.StudentConnection).filter(
+        models.StudentConnection.receiver_id == user.id,
+        models.StudentConnection.status == "pending"
+    ).count()
+
+    return templates.TemplateResponse("community.html", {
+        "request": request,
+        "user": user,
+        "my_archetype": my_archetype,
+        "similar_students": similar_students,
+        "other_archetypes": other_archetypes,
+        "pending_count": pending_count,
+    })
+
+
+@app.get("/student/{user_id}", response_class=HTMLResponse)
+async def student_profile(user_id: int, request: Request, db: Session = Depends(get_db)):
+    """Public profile page for a student."""
+    user = get_current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+
+    student = db.query(models.User).filter(
+        models.User.id == user_id,
+        models.User.role == "student"
+    ).first()
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+
+    assessment = db.query(models.AssessmentResult).filter(
+        models.AssessmentResult.user_id == user_id
+    ).first()
+
+    # Connection status between current user and this student
+    connection = db.query(models.StudentConnection).filter(
+        ((models.StudentConnection.requester_id == user.id) & (models.StudentConnection.receiver_id == user_id)) |
+        ((models.StudentConnection.requester_id == user_id) & (models.StudentConnection.receiver_id == user.id))
+    ).first()
+
+    conn_info = None
+    if connection:
+        conn_info = {
+            "status": connection.status,
+            "conn_id": connection.id,
+            "is_requester": connection.requester_id == user.id
+        }
+
+    # Get this student's accepted connections (for sidebar)
+    accepted_connections = db.query(models.StudentConnection).filter(
+        ((models.StudentConnection.requester_id == user_id) |
+         (models.StudentConnection.receiver_id == user_id)),
+        models.StudentConnection.status == "accepted"
+    ).all()
+
+    connected_users = []
+    for conn in accepted_connections:
+        other_id = conn.receiver_id if conn.requester_id == user_id else conn.requester_id
+        other_user = db.query(models.User).filter(models.User.id == other_id).first()
+        if other_user:
+            connected_users.append(other_user)
+
+    is_own_profile = (user.id == user_id)
+
+    return templates.TemplateResponse("student_profile.html", {
+        "request": request,
+        "user": user,
+        "student": student,
+        "assessment": assessment,
+        "connection": conn_info,
+        "connected_users": connected_users,
+        "is_own_profile": is_own_profile,
+    })
+
+
+@app.post("/connect/{user_id}")
+async def send_connection_request(user_id: int, request: Request, db: Session = Depends(get_db)):
+    """Send a connection request to another student."""
+    user = get_current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+
+    if user.id == user_id:
+        return RedirectResponse(url="/community", status_code=status.HTTP_302_FOUND)
+
+    # Check receiver exists and is a student
+    receiver = db.query(models.User).filter(models.User.id == user_id, models.User.role == "student").first()
+    if not receiver:
+        raise HTTPException(status_code=404, detail="Student not found")
+
+    # Check for existing connection
+    existing = db.query(models.StudentConnection).filter(
+        ((models.StudentConnection.requester_id == user.id) & (models.StudentConnection.receiver_id == user_id)) |
+        ((models.StudentConnection.requester_id == user_id) & (models.StudentConnection.receiver_id == user.id))
+    ).first()
+
+    if existing:
+        # Already exists – redirect back
+        referer = request.headers.get("referer", "/community")
+        return RedirectResponse(url=referer, status_code=status.HTTP_302_FOUND)
+
+    new_conn = models.StudentConnection(requester_id=user.id, receiver_id=user_id, status="pending")
+    db.add(new_conn)
+    db.commit()
+
+    referer = request.headers.get("referer", "/community")
+    return RedirectResponse(url=referer, status_code=status.HTTP_302_FOUND)
+
+
+@app.post("/connection/{conn_id}/accept")
+async def accept_connection(conn_id: int, request: Request, db: Session = Depends(get_db)):
+    """Accept a pending connection request."""
+    user = get_current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+
+    conn = db.query(models.StudentConnection).filter(
+        models.StudentConnection.id == conn_id,
+        models.StudentConnection.receiver_id == user.id,
+        models.StudentConnection.status == "pending"
+    ).first()
+
+    if not conn:
+        raise HTTPException(status_code=404, detail="Connection request not found")
+
+    conn.status = "accepted"
+    db.commit()
+
+    referer = request.headers.get("referer", "/my-connections")
+    return RedirectResponse(url=referer, status_code=status.HTTP_302_FOUND)
+
+
+@app.post("/connection/{conn_id}/reject")
+async def reject_connection(conn_id: int, request: Request, db: Session = Depends(get_db)):
+    """Reject a pending connection request."""
+    user = get_current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+
+    conn = db.query(models.StudentConnection).filter(
+        models.StudentConnection.id == conn_id,
+        models.StudentConnection.receiver_id == user.id,
+        models.StudentConnection.status == "pending"
+    ).first()
+
+    if not conn:
+        raise HTTPException(status_code=404, detail="Connection request not found")
+
+    db.delete(conn)
+    db.commit()
+
+    referer = request.headers.get("referer", "/my-connections")
+    return RedirectResponse(url=referer, status_code=status.HTTP_302_FOUND)
+
+
+@app.post("/disconnect/{user_id}")
+async def disconnect_user(user_id: int, request: Request, db: Session = Depends(get_db)):
+    """Remove an existing connection."""
+    user = get_current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+
+    conn = db.query(models.StudentConnection).filter(
+        ((models.StudentConnection.requester_id == user.id) & (models.StudentConnection.receiver_id == user_id)) |
+        ((models.StudentConnection.requester_id == user_id) & (models.StudentConnection.receiver_id == user.id)),
+        models.StudentConnection.status == "accepted"
+    ).first()
+
+    if conn:
+        db.delete(conn)
+        db.commit()
+
+    referer = request.headers.get("referer", "/community")
+    return RedirectResponse(url=referer, status_code=status.HTTP_302_FOUND)
+
+
+@app.post("/profile/update-bio")
+async def update_bio(request: Request, bio: str = Form(""), db: Session = Depends(get_db)):
+    """Update the current user's bio."""
+    user = get_current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+
+    user.bio = bio.strip()[:500]  # Limit to 500 chars
+    db.commit()
+
+    referer = request.headers.get("referer", "/dashboard")
+    return RedirectResponse(url=referer, status_code=status.HTTP_302_FOUND)
+
+
+@app.get("/my-connections", response_class=HTMLResponse)
+async def my_connections_page(request: Request, db: Session = Depends(get_db)):
+    """View accepted connections and pending requests."""
+    user = get_current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+
+    # Accepted connections
+    accepted = db.query(models.StudentConnection).filter(
+        ((models.StudentConnection.requester_id == user.id) |
+         (models.StudentConnection.receiver_id == user.id)),
+        models.StudentConnection.status == "accepted"
+    ).all()
+
+    connected_users = []
+    for conn in accepted:
+        other_id = conn.receiver_id if conn.requester_id == user.id else conn.requester_id
+        other_user = db.query(models.User).filter(models.User.id == other_id).first()
+        if other_user:
+            other_assessment = db.query(models.AssessmentResult).filter(
+                models.AssessmentResult.user_id == other_id
+            ).first()
+            connected_users.append({
+                "user": other_user,
+                "assessment": other_assessment,
+                "conn_id": conn.id
+            })
+
+    # Pending received requests
+    pending_received = db.query(models.StudentConnection).filter(
+        models.StudentConnection.receiver_id == user.id,
+        models.StudentConnection.status == "pending"
+    ).all()
+
+    pending_requests = []
+    for conn in pending_received:
+        requester = db.query(models.User).filter(models.User.id == conn.requester_id).first()
+        if requester:
+            req_assessment = db.query(models.AssessmentResult).filter(
+                models.AssessmentResult.user_id == conn.requester_id
+            ).first()
+            pending_requests.append({
+                "user": requester,
+                "assessment": req_assessment,
+                "conn_id": conn.id
+            })
+
+    # Pending sent requests
+    pending_sent = db.query(models.StudentConnection).filter(
+        models.StudentConnection.requester_id == user.id,
+        models.StudentConnection.status == "pending"
+    ).all()
+
+    sent_requests = []
+    for conn in pending_sent:
+        receiver = db.query(models.User).filter(models.User.id == conn.receiver_id).first()
+        if receiver:
+            sent_requests.append({
+                "user": receiver,
+                "conn_id": conn.id
+            })
+
+    return templates.TemplateResponse("my_connections.html", {
+        "request": request,
+        "user": user,
+        "connected_users": connected_users,
+        "pending_requests": pending_requests,
+        "sent_requests": sent_requests,
+    })
+
+
+@app.get("/connection/{conn_id}/chat", response_class=HTMLResponse)
+async def student_chat_page(conn_id: int, request: Request, db: Session = Depends(get_db)):
+    """Private chat page between connected students."""
+    user = get_current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+
+    # Verify connection exists and is accepted
+    conn = db.query(models.StudentConnection).filter(
+        models.StudentConnection.id == conn_id,
+        ((models.StudentConnection.requester_id == user.id) | (models.StudentConnection.receiver_id == user.id)),
+        models.StudentConnection.status == "accepted"
+    ).first()
+
+    if not conn:
+        raise HTTPException(status_code=403, detail="Not connected or unauthorized")
+
+    other_id = conn.receiver_id if conn.requester_id == user.id else conn.requester_id
+    other_user = db.query(models.User).filter(models.User.id == other_id).first()
+
+    # Get message history
+    messages = db.query(models.StudentMessage).filter(
+        ((models.StudentMessage.sender_id == user.id) & (models.StudentMessage.receiver_id == other_id)) |
+        ((models.StudentMessage.sender_id == other_id) & (models.StudentMessage.receiver_id == user.id))
+    ).order_by(models.StudentMessage.timestamp.asc()).all()
+
+    # Mark as read
+    db.query(models.StudentMessage).filter(
+        models.StudentMessage.receiver_id == user.id,
+        models.StudentMessage.sender_id == other_id,
+        models.StudentMessage.is_read == False
+    ).update({models.StudentMessage.is_read: True})
+    db.commit()
+
+    return templates.TemplateResponse("student_chat.html", {
+        "request": request,
+        "user": user,
+        "other_user": other_user,
+        "messages": messages,
+        "conn_id": conn_id
+    })
+
+
+@app.post("/connection/{conn_id}/chat/send")
+async def send_student_message(
+    conn_id: int, 
+    request: Request, 
+    content: str = Form(None),
+    db: Session = Depends(get_db)
+):
+    """Send a private message to a connected student."""
+    user = get_current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+
+    # If JSON request (XHR)
+    if request.headers.get("content-type") == "application/json":
+        data = await request.json()
+        content = data.get("content")
+
+    if not content:
+        raise HTTPException(status_code=400, detail="Message content is required")
+
+    # Verify connection
+    conn = db.query(models.StudentConnection).filter(
+        models.StudentConnection.id == conn_id,
+        ((models.StudentConnection.requester_id == user.id) | (models.StudentConnection.receiver_id == user.id)),
+        models.StudentConnection.status == "accepted"
+    ).first()
+
+    if not conn:
+        raise HTTPException(status_code=403, detail="Not connected or unauthorized")
+
+    receiver_id = conn.receiver_id if conn.requester_id == user.id else conn.requester_id
+
+    new_msg = models.StudentMessage(
+        sender_id=user.id,
+        receiver_id=receiver_id,
+        content=content
+    )
+    db.add(new_msg)
+    db.commit()
+
+    if request.headers.get("content-type") == "application/json":
+        return {"success": True, "message_id": new_msg.id}
+
+    return RedirectResponse(url=f"/connection/{conn_id}/chat", status_code=status.HTTP_303_SEE_OTHER)
+
+
+@app.get("/connection/{conn_id}/chat/messages")
+async def get_student_messages(conn_id: int, request: Request, after_id: int = 0, db: Session = Depends(get_db)):
+    """Fetch new messages for real-time polling."""
+    user = get_current_user(request, db)
+    if not user:
+        return {"error": "Unauthorized"}
+
+    conn = db.query(models.StudentConnection).filter(
+        models.StudentConnection.id == conn_id,
+        ((models.StudentConnection.requester_id == user.id) | (models.StudentConnection.receiver_id == user.id)),
+        models.StudentConnection.status == "accepted"
+    ).first()
+
+    if not conn:
+        return {"error": "Forbidden"}
+
+    other_id = conn.receiver_id if conn.requester_id == user.id else conn.requester_id
+
+    messages = db.query(models.StudentMessage).filter(
+        ((models.StudentMessage.sender_id == user.id) & (models.StudentMessage.receiver_id == other_id)) |
+        ((models.StudentMessage.sender_id == other_id) & (models.StudentMessage.receiver_id == user.id)),
+        models.StudentMessage.id > after_id
+    ).order_by(models.StudentMessage.timestamp.asc()).all()
+
+    return {
+        "messages": [
+            {
+                "id": m.id,
+                "sender_id": m.sender_id,
+                "content": m.content,
+                "timestamp": m.timestamp.isoformat()
+            }
+            for m in messages
+        ]
+    }
 
 
 if __name__ == "__main__":
