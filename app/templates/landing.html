@@ -151,18 +151,19 @@
             </div>
 
             <!-- Mobile Toggle -->
-            <button @click="mobileMenu = !mobileMenu" class="md:hidden text-2xl text-white">
-                <i class="fa-solid fa-bars"></i>
+            <button @click="mobileMenu = !mobileMenu" class="md:hidden text-2xl text-white w-12 h-12 flex items-center justify-center rounded-lg hover:bg-white/10 focus:outline-none transition" aria-label="Toggle Menu">
+                <i class="fa-solid fa-bars" x-show="!mobileMenu"></i>
+                <i class="fa-solid fa-xmark" x-show="mobileMenu" style="display: none;"></i>
             </button>
         </div>
 
         <!-- Mobile Menu Dropdown -->
         <div x-show="mobileMenu" x-transition
-            class="md:hidden absolute top-full left-0 w-full bg-[#0F172A] border-b border-white/10 p-6 flex flex-col gap-4 shadow-2xl">
-            <a href="#students" class="text-lg font-medium">For Students</a>
-            <a href="#counsellors" class="text-lg font-medium">For Counsellors</a>
-            <a href="/login" class="text-lg font-medium text-blue-400">Log In</a>
-            <a href="/signup" class="bg-blue-600 text-center py-3 rounded-xl font-bold text-white">Get Started Free</a>
+            class="md:hidden absolute top-full left-0 w-full max-h-[calc(100vh-80px)] overflow-y-auto bg-[#0F172A] border-b border-white/10 p-6 flex flex-col gap-4 shadow-2xl origin-top">
+            <a href="#students" @click="mobileMenu = false" class="text-lg font-medium py-2 hover:text-blue-400 transition">For Students</a>
+            <a href="#counsellors" @click="mobileMenu = false" class="text-lg font-medium py-2 hover:text-blue-400 transition">For Counsellors</a>
+            <a href="/login" class="text-lg font-medium text-blue-400 py-2 hover:text-blue-300 transition">Log In</a>
+            <a href="/signup" class="bg-blue-600 hover:bg-blue-500 transition text-center py-4 mt-2 rounded-xl font-bold text-white shadow-lg">Get Started Free</a>
         </div>
     </nav>
 
@@ -191,7 +192,7 @@
                     AI-Powered Career Discovery
                 </div>
 
-                <h1 class="font-display text-5xl md:text-7xl font-bold leading-[1.1] mb-6 tracking-tight text-white">
+                <h1 class="font-display text-4xl sm:text-5xl md:text-7xl font-bold leading-[1.1] mb-6 tracking-tight text-white">
                     Find the Future <br>
                     <span class="text-gradient">You Actually Want.</span>
                 </h1>
@@ -201,14 +202,14 @@
                     perfect career path.
                 </p>
 
-                <div class="flex flex-col sm:flex-row gap-4">
+                <div class="flex flex-col sm:flex-row gap-4 w-full">
                     <a href="#students"
-                        class="px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl text-white font-bold shadow-lg shadow-blue-500/25 hover:scale-105 transition flex items-center justify-center gap-2">
+                        class="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl text-white font-bold shadow-lg shadow-blue-500/25 hover:scale-105 transition flex items-center justify-center gap-2">
                         I'm a Student
                         <i class="fa-solid fa-arrow-right"></i>
                     </a>
                     <a href="#counsellors"
-                        class="px-8 py-4 glass text-white font-bold rounded-2xl hover:bg-white/10 transition flex items-center justify-center gap-2">
+                        class="w-full sm:w-auto px-8 py-4 glass text-white font-bold rounded-2xl hover:bg-white/10 transition flex items-center justify-center gap-2">
                         I'm a Counsellor
                     </a>
                 </div>
@@ -235,7 +236,7 @@
                 <!-- Dashboard Mockup Card -->
                 <div class="relative z-10 glass rounded-3xl p-4 animate-float border border-white/10 shadow-2xl">
                     <img src="https://images.unsplash.com/photo-1531403009284-440f080d1e12?auto=format&fit=crop&q=80&w=1000"
-                        alt="Career Dashboard" class="rounded-2xl w-full object-cover h-[400px]">
+                        alt="Career Dashboard" class="rounded-2xl w-full object-cover h-[400px]" loading="lazy">
 
                     <!-- Floating Elements -->
                     <div class="absolute -left-8 top-10 glass p-4 rounded-2xl flex items-center gap-3 shadow-xl animate-bounce"
@@ -300,7 +301,7 @@
     <!-- STUDENT SECTION (BENTO GRID) -->
     <section id="students" class="py-12 md:py-24 px-6 relative">
         <div class="max-w-7xl mx-auto">
-            <div class="text-center mb-16" data-aos="fade-up">
+            <div class="text-center mb-10 md:mb-16" data-aos="fade-up">
                 <h2 class="text-3xl md:text-5xl font-display font-bold mb-4">Master Your <span
                         class="text-blue-500">Path</span></h2>
                 <p class="text-slate-400 max-w-2xl mx-auto">Our AI analyzes 50+ data points about your personality,
@@ -326,8 +327,8 @@
                                 emotional intelligence.</p>
                         </div>
                         <img src="https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&q=80&w=600"
-                            class="mt-6 rounded-2xl opacity-60 group-hover:opacity-100 transition duration-500 shadow-lg w-full h-48 object-cover"
-                            alt="Test interface">
+                            class="mt-6 rounded-2xl opacity-60 group-hover:opacity-100 transition duration-500 shadow-lg w-full h-48 sm:h-auto md:h-48 lg:h-56 object-cover"
+                            alt="Test interface" loading="lazy">
                     </div>
                 </div>
 
@@ -390,7 +391,7 @@
                         <div class="bg-white/5 p-4 rounded-xl flex justify-between items-center">
                             <div class="flex items-center gap-3">
                                 <div class="w-10 h-10 rounded-full bg-slate-700 overflow-hidden">
-                                    <img src="https://i.pravatar.cc/100?img=12" alt="">
+                                    <img src="https://i.pravatar.cc/100?img=12" alt="" loading="lazy">
                                 </div>
                                 <div>
                                     <p class="text-sm font-bold text-white">Session with Alex</p>
@@ -441,7 +442,7 @@
                 </ul>
 
                 <a href="/signup"
-                    class="btn-main px-8 py-4 border border-indigo-500 text-indigo-400 font-bold rounded-xl hover:bg-indigo-500 hover:text-white transition inline-block">
+                    class="w-full sm:w-auto text-center btn-main px-8 py-4 border border-indigo-500 text-indigo-400 font-bold rounded-xl hover:bg-indigo-500 hover:text-white transition inline-block">
                     Apply as Counsellor
                 </a>
             </div>
@@ -456,8 +457,8 @@
         </div>
 
         <div class="max-w-7xl mx-auto">
-            <div class="text-center mb-16">
-                <h2 class="text-4xl font-bold font-display">From Confusion to <span class="text-blue-500">Clarity</span>
+            <div class="text-center mb-10 md:mb-16">
+                <h2 class="text-3xl sm:text-4xl font-bold font-display">From Confusion to <span class="text-blue-500">Clarity</span>
                 </h2>
             </div>
 
@@ -578,18 +579,18 @@
                 <!-- Background Glow -->
                 <div class="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl"></div>
 
-                <h2 class="text-3xl md:text-5xl font-display font-bold text-white mb-6">Ready to Find Your Place?</h2>
-                <p class="text-lg text-slate-300 mb-10 max-w-2xl mx-auto">
+                <h2 class="text-3xl sm:text-4xl md:text-5xl font-display font-bold text-white mb-6">Ready to Find Your Place?</h2>
+                <p class="text-base sm:text-lg text-slate-300 mb-10 max-w-2xl mx-auto">
                     Join 50,000+ others who have discovered their true potential. No credit card required to start.
                 </p>
 
-                <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                <div class="flex flex-col sm:flex-row gap-4 justify-center w-full">
                     <a href="/signup"
-                        class="px-8 py-4 bg-white text-slate-900 font-bold rounded-xl hover:scale-105 transition shadow-xl">
+                        class="w-full sm:w-auto px-8 py-4 bg-white text-slate-900 font-bold rounded-xl hover:scale-105 transition shadow-xl text-center">
                         Get Started Free
                     </a>
                     <a href="#"
-                        class="px-8 py-4 bg-white/5 text-white border border-white/10 font-bold rounded-xl hover:bg-white/10 transition">
+                        class="w-full sm:w-auto px-8 py-4 bg-white/5 text-white border border-white/10 font-bold rounded-xl hover:bg-white/10 transition text-center">
                         View Sample Report
                     </a>
                 </div>
