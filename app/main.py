@@ -349,7 +349,14 @@ async def login(
          return templates.TemplateResponse("login.html", {"request": request, "error": "Invalid credentials"})
     
     response = RedirectResponse(url="/dashboard", status_code=status.HTTP_302_FOUND)
-    response.set_cookie(key="user_id", value=str(user.id))
+    # 30 day persistent session
+    response.set_cookie(
+        key="user_id", 
+        value=str(user.id), 
+        max_age=30 * 24 * 60 * 60,
+        httponly=True,
+        samesite="lax"
+    )
     return response
 
 @app.get("/logout")
@@ -1279,7 +1286,7 @@ async def create_razorpay_order(counsellor_id: int, request: Request, fee: float
         "amount": int(fee * 100), # amount in paise
         "currency": "INR",
         "receipt": f"receipt_{uuid.uuid4().hex[:10]}",
-        "payment_capture": 1
+        "payment_capture": 0 # AUTHORIZATION ONLY (Wait for counsellor approval)
     }
     
     try:
@@ -1538,8 +1545,8 @@ async def verify_payment(request: Request, background_tasks: BackgroundTasks, db
         student_id=user.id,
         counsellor_id=counsellor_id,
         appointment_time=appt_time,
-        status="scheduled",
-        payment_status="paid",
+        status="requested", # Default to requested
+        payment_status="authorized", # Funds are authorized but not captured
         meeting_link=meeting_link,
         razorpay_order_id=razorpay_order_id,
         razorpay_payment_id=razorpay_payment_id
@@ -1594,9 +1601,130 @@ async def verify_payment(request: Request, background_tasks: BackgroundTasks, db
     except Exception as pe:
         print(f"DEBUG: Split record creation error: {pe}")
     
-    # Send Emails
-    student_email = user.email
+    # Send Notification to Counsellor
     counsellor_user = db.query(models.User).filter(models.User.id == counsellor_id).first()
+    if counsellor_user:
+        notif = models.Notification(
+            user_id=counsellor_id,
+            type="booking_request",
+            message=f"New booking request from {user.full_name} for {appt_time.strftime('%b %d, %I:%M %p')}."
+        )
+        db.add(notif)
+        db.commit()
+
+    return templates.TemplateResponse("appointment_success.html", {"request": request, "user": user, "appointment": appointment, "is_request": True})
+
+@app.post("/appointment/accept/{appt_id}")
+async def accept_appointment(appt_id: int, request: Request, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+    user = get_current_user(request, db)
+    if not user or user.role != "counsellor":
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+    
+    appt = db.query(models.Appointment).filter(models.Appointment.id == appt_id, models.Appointment.counsellor_id == user.id).first()
+    if not appt:
+        raise HTTPException(status_code=404, detail="Appointment not found")
+    
+    # 1. Capture Payment if it was authorized
+    if appt.payment_status == "authorized" and appt.razorpay_payment_id:
+        try:
+            # Get payment details to find amount
+            payment_info = razorpay_client.payment.fetch(appt.razorpay_payment_id)
+            amount = payment_info['amount']
+            razorpay_client.payment.capture(appt.razorpay_payment_id, amount)
+            appt.payment_status = "paid"
+        except Exception as e:
+            print(f"Razorpay Capture Error: {e}")
+            # Even if capture fails, we might want to know why. 
+            # If it's already captured, just proceed.
+            if "already captured" in str(e).lower():
+                appt.payment_status = "paid"
+            else:
+                return RedirectResponse(url="/dashboard?error=Payment+capture+failed", status_code=status.HTTP_302_FOUND)
+
+    # 2. Update Status
+    appt.status = "scheduled"
+    db.commit()
+
+    # 3. Notify Student
+    student = db.query(models.User).filter(models.User.id == appt.student_id).first()
+    if student:
+        appt_time_str = appt.appointment_time.strftime('%b %d, %I:%M %p')
+        background_tasks.add_task(
+            send_email,
+            student.email,
+            "Booking Accepted! 🚀",
+            f"Hi {student.full_name}, your session with {user.full_name} on {appt_time_str} has been accepted and confirmed."
+        )
+        # Add internal notification
+        notif = models.Notification(
+            user_id=student.id,
+            type="booking_accepted",
+            message=f"Counsellor {user.full_name} accepted your session for {appt_time_str}."
+        )
+        db.add(notif)
+        db.commit()
+
+    return RedirectResponse(url="/dashboard?message=Appointment+accepted", status_code=status.HTTP_302_FOUND)
+
+@app.post("/appointment/reject/{appt_id}")
+async def reject_appointment(appt_id: int, request: Request, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+    user = get_current_user(request, db)
+    if not user or user.role != "counsellor":
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+    
+    appt = db.query(models.Appointment).filter(models.Appointment.id == appt_id, models.Appointment.counsellor_id == user.id).first()
+    if not appt:
+        raise HTTPException(status_code=404, detail="Appointment not found")
+    
+    # 1. Release Payment (Refund if authorized)
+    # Note: If only authorized, Razorpay doesn't have a direct "void" in the client lib sometimes, 
+    # but not capturing it is the primary way. However, refunding an authorized payment voids it.
+    if appt.payment_status == "authorized" and appt.razorpay_payment_id:
+        try:
+            # Refunding an authorized payment effectively releases the hold
+            razorpay_client.payment.refund(appt.razorpay_payment_id, {})
+            appt.payment_status = "refunded/released"
+        except Exception as e:
+            print(f"Razorpay Release Error: {e}")
+
+    # 2. Update Status
+    appt.status = "rejected"
+    db.commit()
+
+    # 3. Notify Student
+    student = db.query(models.User).filter(models.User.id == appt.student_id).first()
+    if student:
+        appt_time_str = appt.appointment_time.strftime('%b %d, %I:%M %p')
+        background_tasks.add_task(
+            send_email,
+            student.email,
+            "Booking Notification ⚠️",
+            f"Hi {student.full_name}, unfortunately, {user.full_name} is unable to take the session on {appt_time_str}. Your payment hold has been released."
+        )
+        notif = models.Notification(
+            user_id=student.id,
+            type="booking_rejected",
+            message=f"Counsellor {user.full_name} rejected your session for {appt_time_str}. Hold released."
+        )
+        db.add(notif)
+        db.commit()
+
+    return RedirectResponse(url="/dashboard?message=Appointment+rejected", status_code=status.HTTP_302_FOUND)
+
+@app.post("/career/roadmap/delete/{path_id}")
+async def delete_roadmap(path_id: int, request: Request, db: Session = Depends(get_db)):
+    user = get_current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+    
+    path = db.query(models.CareerPath).filter(models.CareerPath.id == path_id, models.CareerPath.user_id == user.id).first()
+    if not path:
+        raise HTTPException(status_code=404, detail="Roadmap not found")
+    
+    db.delete(path)
+    db.commit()
+    return RedirectResponse(url="/career/roadmaps?message=Roadmap+deleted", status_code=status.HTTP_302_FOUND)
+
     if counsellor_user:
         appt_time_str = appt_time.strftime('%b %d, %I:%M %p')
         # To Student
@@ -2082,6 +2210,13 @@ async def assessment_final_submit(request: Request, db: Session = Depends(get_db
 
                 Task:
                 {task_instruction}
+                
+                CRITICAL ADDITION:
+                In addition to the top 3 recommendations requested above, YOU MUST provide a 4th recommendation directly related to the student's hobbies and extracurricular interests (e.g. {answers.get('PI1_Hobbies', 'N/A')}, {answers.get('PI2_Extracurricular', 'N/A')}).
+                
+                Even if it's outside the standard academic path, suggest how their hobbies could lead to a professional career.
+                
+                The 4th recommendation should be returned in the same format as the others, but clearly labeled as "Hobby-based Recommendation" in your reasoning.
 
                 You must speak with authority yet warmth. Output MUST be raw JSON only matching this structure. 
                 {output_format}
@@ -2100,6 +2235,13 @@ async def assessment_final_submit(request: Request, db: Session = Depends(get_db
                 if mode == "10th":
                     if "stream_pros" in ai_data: result.stream_pros = ai_data["stream_pros"]
                     if "stream_cons" in ai_data: result.stream_cons = ai_data["stream_cons"]
+                    # Add hobby recommendation to analysis text
+                    if "goal_options" in ai_data and len(ai_data["goal_options"]) > 0:
+                        hobby_rec = ai_data["goal_options"][-1]
+                        if isinstance(hobby_rec, dict):
+                            title = hobby_rec.get('title', 'Alternative Path')
+                            reason = hobby_rec.get('reason', '')
+                            result.final_analysis += f"\n\n**Special Interest Recommendation:** Based on your hobbies, you might also consider a career as a {title}. {reason}"
                 else:
                     # Map 'goal_options' to 'stream_pros' for storage
                     if "goal_options" in ai_data: result.stream_pros = ai_data["goal_options"]
@@ -2149,13 +2291,17 @@ async def final_chat(request: Request, chat_req: FinalChatRequest, db: Session =
         flat_questions = []
         for section_id, section_data in all_questions.items():
             for q in section_data["questions"]:
-                flat_questions.append({
+                q_dict = {
                     "id": q["id"],
                     "title": q["question"],
-                    "options": [{"value": o["value"], "text": o["text"]} for o in q["options"]],
-                    "section": section_data["title"],
-                    "type": "mcq"
-                })
+                    "section": section_data["title"]
+                }
+                if q.get("type") == "open":
+                    q_dict["type"] = "open"
+                else:
+                    q_dict["type"] = "mcq"
+                    q_dict["options"] = [{"value": o["value"], "text": o["text"]} for o in q["options"]]
+                flat_questions.append(q_dict)
     elif mode == "12th":
         flat_questions = [
             {"id": q["id"], "title": q["title"], "text": q["text"], "insight": q["insight"], "type": "open"}

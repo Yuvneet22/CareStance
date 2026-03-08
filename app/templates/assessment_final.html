@@ -76,6 +76,29 @@
                                 section.title }}</span>
                             <h4 class="text-2xl font-extrabold text-slate-800 mb-2 question-title">{{ q.question }}</h4>
                         </div>
+                        {% if q.type == 'open' %}
+                        <div class="space-y-4">
+                            <div class="relative">
+                                <label for="{{ q.id }}" class="block text-sm font-medium text-slate-500 mb-2 uppercase tracking-wider">Your Answer (Type or Speak)</label>
+                                <div class="flex gap-3">
+                                    <textarea id="{{ q.id }}" name="{{ q.id }}" rows="3" required
+                                        class="shadow-sm focus:ring-4 focus:ring-violet-500/20 focus:border-violet-500 block w-full sm:text-lg border-slate-200 rounded-xl p-4 transition-all duration-300 bg-white/80 backdrop-blur-sm"
+                                        placeholder="{{ q.placeholder or 'I love...' }}"></textarea>
+                                    <button type="button" onclick="toggleSpeech('{{ q.id }}')"
+                                        class="inline-flex items-center px-4 py-2 border border-slate-200 shadow-sm text-2xl rounded-xl text-slate-700 bg-white hover:bg-violet-50 hover:text-violet-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-violet-500 transition-all"
+                                        id="btn-{{ q.id }}" title="Record Audio">🎤
+                                    </button>
+                                </div>
+                                <p id="status-{{ q.id }}" class="text-sm font-bold text-violet-600 mt-2 hidden animate-pulse flex items-center gap-2">
+                                    <span class="h-2 w-2 bg-violet-600 rounded-full"></span> Listening...
+                                </p>
+                            </div>
+                            <button type="button" onclick="moveToNextStep()"
+                                class="w-full py-3 bg-violet-600 text-white font-bold rounded-xl hover:bg-violet-700 transition-all shadow-lg shadow-violet-100 mt-4">
+                                Next Question
+                            </button>
+                        </div>
+                        {% else %}
                         <div class="space-y-3">
                             {% for opt in q.options %}
                             <label
@@ -89,6 +112,7 @@
                             </label>
                             {% endfor %}
                         </div>
+                        {% endif %}
                     </div>
                     {% set ns.counter = ns.counter + 1 %}
                     {% endfor %}

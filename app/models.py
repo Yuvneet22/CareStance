@@ -140,7 +140,7 @@ class Appointment(Base):
     student_id = Column(Integer, ForeignKey("users.id"))
     counsellor_id = Column(Integer, ForeignKey("users.id"))
     appointment_time = Column(DateTime)
-    status = Column(String, default="scheduled")  # scheduled, completed, cancelled
+    status = Column(String, default="requested")  # requested, accepted, rejected, completed, cancelled
     payment_status = Column(String, default="pending")  # pending, paid
     meeting_link = Column(String, nullable=True)
     razorpay_order_id = Column(String, nullable=True)
