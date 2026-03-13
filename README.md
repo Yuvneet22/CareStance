@@ -23,6 +23,7 @@ An AI-powered career assessment and guidance platform built with FastAPI. Design
 - **Live Consultations**: Real-time video calls via **Jitsi Meet** with automatic status tracking
 - **Live Notifications**: Instant "Online" badge and animated join alerts when a counsellor joins the call
 - **Support Ticket System**: Direct communication channel for students to raise queries and receive admin responses
+- **AI Response Caching**: Integrated **Redis** caching for all LLM responses (Gemini/Groq) to provide instant load times and reduce API costs
 - **Admin Dashboard**: Enhanced dashboard for user management, feedback review, and ticket resolution (Reply/Close/Delete)
 - **User Authentication**: Secure signup/login with bcrypt hashing and mock Google Sign-In support
 
@@ -68,6 +69,7 @@ graph TD
 
     AI_ENG <--> Gemini
     AI_ENG <--> Groq
+    AI_ENG <--> REDIS[("Redis Cache")]
     
     PAY_MOD <--> Razorpay
     
@@ -93,6 +95,7 @@ graph TD
 | Video      | Jitsi Meet API                                 |
 | AI (Primary) | Google Gemini (`gemini-flash-latest`)        |
 | AI (Fallback) | Groq API (`llama-3.3-70b-versatile`)        |
+| Caching    | Redis                                          |
 | Auth       | bcrypt, Cookie-based sessions                  |
 | Frontend   | HTML, Vanilla CSS, JavaScript (Tailwind CDN)   |
 
@@ -162,6 +165,7 @@ RAZORPAY_KEY_ID=your-razorpay-id
 RAZORPAY_KEY_SECRET=your-razorpay-secret
 ADMIN_EMAIL=admin@example.com
 SECRET_KEY=your-random-secret
+REDIS_URL=redis://default:password@host:port
 ```
 
 ### 3. Launch
