@@ -3355,7 +3355,8 @@ async def send_connection_request(user_id: int, request: Request, db: Session = 
 
     # Send Email Notification
     try:
-        profile_link = f"{request.base_url}my-connections"
+        app_url = os.getenv("APP_URL", str(request.base_url).rstrip("/"))
+        profile_link = f"{app_url}/student/{user.id}"
         email_body = email_utils.get_connection_request_template(
             receiver.name, 
             user.name, 
