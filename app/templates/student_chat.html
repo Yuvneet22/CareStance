@@ -76,7 +76,25 @@
                 <div class="flex flex-col {% if msg.sender_id == user.id %}items-end{% endif %} max-w-[80%]">
                     <div
                         class="p-3 rounded-2xl text-sm shadow-sm border {% if msg.sender_id == user.id %}bg-gradient-to-r from-violet-600 to-indigo-600 text-white border-violet-500 rounded-tr-none{% else %}bg-white text-slate-700 border-slate-100 rounded-tl-none{% endif %}">
-                        {{ msg.content }}
+                        {% if msg.attachment_path %}
+                        {% if msg.attachment_type == 'image' %}
+                        <div class="mb-2">
+                            <img src="{{ msg.attachment_path }}" alt="Image"
+                                class="max-w-full rounded-lg border border-white/20 shadow-sm cursor-pointer hover:opacity-90 transition-opacity"
+                                onclick="window.open(this.src, '_blank')">
+                        </div>
+                        {% else %}
+                        <div class="mb-2">
+                            <a href="{{ msg.attachment_path }}" target="_blank"
+                                class="flex items-center gap-2 p-2 bg-black/10 rounded-xl border border-white/10 hover:bg-black/20 transition-colors">
+                                <i class="fas fa-file"></i>
+                                <span class="truncate">{{ msg.content }}</span>
+                            </a>
+                        </div>
+                        {% endif %}
+                        {% endif %}
+                        {{ msg.content if not msg.attachment_path else (msg.content if msg.attachment_type == 'image'
+                        else '') }}
                     </div>
                     <span class="text-[10px] text-slate-400 mt-1 px-1">
                         {{ msg.timestamp.strftime('%H:%M') }}
@@ -89,7 +107,29 @@
 
         <!-- Input Area -->
         <div class="p-4 bg-white border-t border-slate-100">
+            <div id="file-preview"
+                class="hidden mb-3 p-2 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between">
+                <div class="flex items-center gap-3 overflow-hidden">
+                    <div id="preview-icon"
+                        class="w-10 h-10 bg-violet-100 rounded-xl flex items-center justify-center text-violet-600">
+                        <i class="fas fa-file"></i>
+                    </div>
+                    <div class="overflow-hidden">
+                        <p id="preview-filename" class="text-xs font-bold text-slate-700 truncate"></p>
+                        <p id="preview-filesize" class="text-[10px] text-slate-400"></p>
+                    </div>
+                </div>
+                <button type="button" id="remove-file" class="p-2 text-slate-400 hover:text-red-500 transition-colors">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
             <form id="chat-form" class="flex items-center gap-3">
+                <input type="file" id="file-input" class="hidden" accept="image/*,.pdf,.doc,.docx,.txt">
+                <button type="button" id="attach-button"
+                    class="p-3.5 text-slate-400 hover:text-violet-600 hover:bg-violet-50 rounded-2xl transition-colors">
+                    <i class="fas fa-paperclip"></i>
+                </button>
                 <input type="text" id="message-input" autocomplete="off"
                     class="flex-1 px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 transition-all text-sm"
                     placeholder="Write a message...">
@@ -148,21 +188,59 @@
     };
     scrollToBottom();
 
+    const fileInput = document.getElementById('file-input');
+    const attachButton = document.getElementById('attach-button');
+    const filePreview = document.getElementById('file-preview');
+    const previewFilename = document.getElementById('preview-filename');
+    const previewFilesize = document.getElementById('preview-filesize');
+    const removeFileBtn = document.getElementById('remove-file');
+    const previewIcon = document.getElementById('preview-icon');
+
+    // Handle File Selection
+    attachButton.addEventListener('click', () => fileInput.click());
+
+    fileInput.addEventListener('change', () => {
+        const file = fileInput.files[0];
+        if (file) {
+            previewFilename.textContent = file.name;
+            previewFilesize.textContent = (file.size / 1024).toFixed(1) + ' KB';
+            filePreview.classList.remove('hidden');
+
+            if (file.type.startsWith('image/')) {
+                previewIcon.innerHTML = '<i class="fas fa-image"></i>';
+            } else {
+                previewIcon.innerHTML = '<i class="fas fa-file"></i>';
+            }
+        }
+    });
+
+    removeFileBtn.addEventListener('click', () => {
+        fileInput.value = '';
+        filePreview.classList.add('hidden');
+    });
+
     // Send Message
     chatForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const content = messageInput.value.trim();
-        if (!content) return;
+        const file = fileInput.files[0];
+        if (!content && !file) return;
+
+        const formData = new FormData();
+        if (content) formData.append('content', content);
+        if (file) formData.append('file', file);
 
         messageInput.value = '';
+        fileInput.value = '';
+        filePreview.classList.add('hidden');
         messageInput.disabled = true;
         sendButton.disabled = true;
+        attachButton.disabled = true;
 
         try {
             const response = await fetch(`/connection/${connId}/chat/send`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ content })
+                body: formData
             });
 
             if (response.ok) {
@@ -173,6 +251,7 @@
         } finally {
             messageInput.disabled = false;
             sendButton.disabled = false;
+            attachButton.disabled = false;
             messageInput.focus();
         }
     });
@@ -204,10 +283,35 @@
 
         const timestamp = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
 
+        let attachmentHtml = '';
+        if (msg.attachment_path) {
+            if (msg.attachment_type === 'image') {
+                attachmentHtml = `
+                    <div class="mb-2">
+                        <img src="${msg.attachment_path}" alt="Image" class="max-w-full rounded-lg border border-white/20 shadow-sm cursor-pointer hover:opacity-90 transition-opacity" onclick="window.open(this.src, '_blank')">
+                    </div>
+                `;
+            } else {
+                attachmentHtml = `
+                    <div class="mb-2">
+                        <a href="${msg.attachment_path}" target="_blank" class="flex items-center gap-2 p-2 bg-black/10 rounded-xl border border-white/10 hover:bg-black/20 transition-colors">
+                            <i class="fas fa-file"></i>
+                            <span class="truncate">${msg.content}</span>
+                        </a>
+                    </div>
+                `;
+            }
+        }
+
+        const displayContent = msg.attachment_path
+            ? (msg.attachment_type === 'image' ? msg.content : '')
+            : msg.content;
+
         div.innerHTML = `
             <div class="flex flex-col ${isMe ? 'items-end' : ''} max-w-[80%]">
                 <div class="p-3 rounded-2xl text-sm shadow-sm border ${isMe ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white border-violet-500 rounded-tr-none' : 'bg-white text-slate-700 border-slate-100 rounded-tl-none'}">
-                    ${msg.content}
+                    ${attachmentHtml}
+                    ${displayContent}
                 </div>
                 <span class="text-[10px] text-slate-400 mt-1 px-1">
                     ${timestamp}

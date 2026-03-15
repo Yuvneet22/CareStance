@@ -202,6 +202,14 @@ def run_migrations():
             if 'razorpay_fund_account_id' not in cp_cols:
                 migrations.append("ALTER TABLE counsellor_profiles ADD COLUMN razorpay_fund_account_id VARCHAR")
         
+        # StudentMessages table migrations
+        sm_cols = get_columns('student_messages')
+        if sm_cols:
+            if 'attachment_path' not in sm_cols:
+                migrations.append("ALTER TABLE student_messages ADD COLUMN attachment_path VARCHAR")
+            if 'attachment_type' not in sm_cols:
+                migrations.append("ALTER TABLE student_messages ADD COLUMN attachment_type VARCHAR")
+        
         if migrations:
             with engine.connect() as conn:
                 for sql in migrations:
@@ -3593,6 +3601,7 @@ async def send_student_message(
     conn_id: int, 
     request: Request, 
     content: str = Form(None),
+    file: Optional[UploadFile] = File(None),
     db: Session = Depends(get_db)
 ):
     """Send a private message to a connected student."""
@@ -3634,10 +3643,36 @@ async def send_student_message(
             return {"error": "Your message was flagged as inappropriate. Repeated violations will lead to account suspension."}
         return RedirectResponse(url=f"/connection/{conn_id}/chat?error=flagged", status_code=status.HTTP_302_FOUND)
 
+    attachment_path = None
+    attachment_type = None
+
+    if file:
+        try:
+            upload_dir = os.path.join(BASE_DIR, "static", "uploads", "chat")
+            os.makedirs(upload_dir, exist_ok=True)
+            
+            file_ext = os.path.splitext(file.filename)[1]
+            unique_filename = f"{uuid.uuid4()}{file_ext}"
+            file_path = os.path.join(upload_dir, unique_filename)
+            
+            with open(file_path, "wb") as buffer:
+                shutil.copyfileobj(file.file, buffer)
+            
+            attachment_path = f"/static/uploads/chat/{unique_filename}"
+            attachment_type = "image" if file.content_type.startswith("image") else "file"
+            
+            # If no content, use filename
+            if not content:
+                content = file.filename
+        except Exception as e:
+            print(f"File upload error: {e}")
+
     new_msg = models.StudentMessage(
         sender_id=user.id,
         receiver_id=receiver_id,
-        content=content
+        content=content,
+        attachment_path=attachment_path,
+        attachment_type=attachment_type
     )
     db.add(new_msg)
     db.commit()
@@ -3678,6 +3713,8 @@ async def get_student_messages(conn_id: int, request: Request, after_id: int = 0
                 "id": m.id,
                 "sender_id": m.sender_id,
                 "content": m.content,
+                "attachment_path": m.attachment_path,
+                "attachment_type": m.attachment_type,
                 "timestamp": m.timestamp.isoformat()
             }
             for m in messages

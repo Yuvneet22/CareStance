@@ -196,6 +196,8 @@ class StudentMessage(Base):
     sender_id = Column(Integer, ForeignKey("users.id"))
     receiver_id = Column(Integer, ForeignKey("users.id"))
     content = Column(Text)
+    attachment_path = Column(String, nullable=True)
+    attachment_type = Column(String, nullable=True) # "image" or "file"
     timestamp = Column(DateTime(timezone=True), server_default=func.now())
     is_read = Column(Boolean, default=False)
 
