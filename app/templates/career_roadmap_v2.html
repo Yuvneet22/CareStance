@@ -271,12 +271,21 @@
                                             <i class="fas fa-bolt text-indigo-400"></i> Power-ups
                                         </p>
                                         <div class="flex flex-wrap gap-2">
-                                            {% for skill in step.skills %}
+                                            {% set step_skills = step.skills or step.skill or step.power_ups %}
+                                            {% if step_skills is iterable and step_skills is not string %}
+                                            {% for skill in step_skills %}
                                             <span
                                                 class="text-[11px] md:text-xs bg-white text-slate-700 font-bold px-3 py-1.5 md:px-4 md:py-2 rounded-lg md:rounded-xl border border-slate-200 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all cursor-default shadow-sm hover:shadow-md transform hover:-translate-y-0.5">
                                                 {{ skill }}
                                             </span>
                                             {% endfor %}
+                                            {% elif step_skills is string %}
+                                            <span
+                                                class="text-[11px] md:text-xs bg-white text-slate-700 font-bold px-3 py-1.5 md:px-4 md:py-2 rounded-lg md:rounded-xl border border-slate-200">{{
+                                                step_skills }}</span>
+                                            {% else %}
+                                            <span class="text-[11px] text-slate-400 italic">Core proficiency</span>
+                                            {% endif %}
                                         </div>
                                     </div>
 
