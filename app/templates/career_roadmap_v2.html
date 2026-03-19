@@ -288,6 +288,7 @@
                                             <i class="fas fa-box-open text-indigo-400"></i> Resources
                                         </p>
                                         <div class="space-y-2">
+                                            {% if step.courses and step.courses|length > 0 %}
                                             {% for course in step.courses %}
                                             {% if course is mapping %}
                                             <a href="{{ course.url }}" target="_blank"
@@ -303,6 +304,22 @@
                                             </a>
                                             {% endif %}
                                             {% endfor %}
+                                            <!-- Link to full aggregator -->
+                                            <a href="/career/roadmap/{{ path.id }}/resources"
+                                                class="block text-center py-2 text-[10px] font-black text-indigo-500 hover:text-indigo-700 uppercase tracking-widest transition-colors">
+                                                Explore Full Library &rarr;
+                                            </a>
+                                            {% else %}
+                                            <!-- Placeholder CTA to Quest Log/Aggregator -->
+                                            <div class="py-4 text-center">
+                                                <p class="text-[11px] text-slate-400 font-medium mb-3 italic">Use our
+                                                    curated aggregator for the best resources.</p>
+                                                <a href="/career/roadmap/{{ path.id }}/resources"
+                                                    class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-indigo-100 transition-all border border-indigo-100/50 shadow-sm">
+                                                    <i class="fas fa-layer-group"></i> Quest Log
+                                                </a>
+                                            </div>
+                                            {% endif %}
                                         </div>
                                     </div>
 
@@ -343,9 +360,9 @@
             <!-- Sidebar Intel -->
             <div class="lg:col-span-1 space-y-6 md:space-y-8 animate-fade-in-up" style="animation-delay: 500ms;">
 
-                <!-- Legend Card -->
-                <div
-                    class="bg-white rounded-2xl md:rounded-[40px] p-5 md:p-8 shadow-xl shadow-slate-200/40 border border-white hover:shadow-2xl transition-shadow duration-300">
+                <!-- Legend Card / Quest Log -->
+                <div id="quest-log"
+                    class="bg-white rounded-2xl md:rounded-[40px] p-5 md:p-8 shadow-xl shadow-slate-200/40 border border-white hover:shadow-2xl transition-shadow duration-300 scroll-mt-24">
                     <h4 class="text-base md:text-lg font-black text-slate-900 mb-4 md:mb-6 flex items-center gap-2">
                         <i class="fas fa-scroll text-slate-400"></i> Quest Log
                     </h4>
