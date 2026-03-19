@@ -21,7 +21,7 @@ class AssessmentResult(Base):
     __tablename__ = "assessment_results"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
     phase_2_category = Column(String)
     personality = Column(String)
     goal_status = Column(String)
@@ -55,8 +55,8 @@ class ChatMessage(Base):
     __tablename__ = "chat_messages"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
-    sender = Column(String) # "user" or "ai"
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
+    sender = Column(String, index=True) # "user" or "ai"
     content = Column(Text)
     timestamp = Column(DateTime(timezone=True), server_default=func.now())
 
@@ -66,7 +66,7 @@ class Feedback(Base):
     __tablename__ = "feedbacks"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
     content = Column(Text)
     rating = Column(Integer)
     timestamp = Column(DateTime(timezone=True), server_default=func.now())
@@ -77,7 +77,7 @@ class Ticket(Base):
     __tablename__ = "tickets"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
     subject = Column(String)
     description = Column(Text)
     status = Column(String, default="Open", index=True)
@@ -90,7 +90,7 @@ class CareerPath(Base):
     __tablename__ = "career_paths"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
     career_title = Column(String)
     path_data = Column(JSON) # Detailed path steps
     reminders = Column(JSON) # List of reminders/milestones
@@ -108,7 +108,7 @@ class CounsellorProfile(Base):
     __tablename__ = "counsellor_profiles"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
     fee = Column(Float, default=0.0)
     # Storing availability as JSON. E.g., {"Monday": ["10:00", "11:00"], "Tuesday": []}
     availability = Column(JSON, nullable=True)
@@ -162,7 +162,7 @@ class CollegeRecommendation(Base):
     __tablename__ = "college_recommendations"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
     career_title = Column(String)
     college_data = Column(JSON)  # AI-generated list of colleges
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -180,9 +180,9 @@ class StudentConnection(Base):
     __tablename__ = "student_connections"
 
     id = Column(Integer, primary_key=True, index=True)
-    requester_id = Column(Integer, ForeignKey("users.id"))
-    receiver_id = Column(Integer, ForeignKey("users.id"))
-    status = Column(String, default="pending")  # pending, accepted, rejected
+    requester_id = Column(Integer, ForeignKey("users.id"), index=True)
+    receiver_id = Column(Integer, ForeignKey("users.id"), index=True)
+    status = Column(String, default="pending", index=True)  # pending, accepted, rejected
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     requester = relationship("User", foreign_keys=[requester_id], backref="sent_connections")
@@ -193,8 +193,8 @@ class StudentMessage(Base):
     __tablename__ = "student_messages"
 
     id = Column(Integer, primary_key=True, index=True)
-    sender_id = Column(Integer, ForeignKey("users.id"))
-    receiver_id = Column(Integer, ForeignKey("users.id"))
+    sender_id = Column(Integer, ForeignKey("users.id"), index=True)
+    receiver_id = Column(Integer, ForeignKey("users.id"), index=True)
     content = Column(Text)
     attachment_path = Column(String, nullable=True)
     attachment_type = Column(String, nullable=True) # "image" or "file"
@@ -210,8 +210,8 @@ class Notification(Base):
     __tablename__ = "notifications"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
-    type = Column(String)  # e.g. "fee_change", "blocked", etc.
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
+    type = Column(String, index=True)  # e.g. "fee_change", "blocked", etc.
     message = Column(Text)
     is_read = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -222,7 +222,7 @@ class ModerationFlag(Base):
     __tablename__ = "moderation_flags"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
     content = Column(Text)
     chat_type = Column(String)  # "ai" or "p2p"
     status = Column(String, default="pending_review", index=True)  # pending_review, dismissed, action_taken
@@ -240,7 +240,7 @@ class Payment(Base):
     __tablename__ = "payments"
 
     id = Column(Integer, primary_key=True, index=True)
-    session_id = Column(Integer, ForeignKey("appointments.id"), nullable=True)  # FK → Appointment
+    session_id = Column(Integer, ForeignKey("appointments.id"), nullable=True, index=True)  # FK → Appointment
     razorpay_order_id = Column(String, unique=True, index=True)
     razorpay_payment_id = Column(String, nullable=True, unique=True, index=True)
     amount = Column(Float)  # Total amount in INR
@@ -259,8 +259,8 @@ class Transfer(Base):
     __tablename__ = "transfers"
 
     id = Column(Integer, primary_key=True, index=True)
-    payment_id = Column(Integer, ForeignKey("payments.id"))
-    counsellor_id = Column(Integer, ForeignKey("users.id"))
+    payment_id = Column(Integer, ForeignKey("payments.id"), index=True)
+    counsellor_id = Column(Integer, ForeignKey("users.id"), index=True)
     amount = Column(Float)  # Counselor's share in INR
     razorpay_transfer_id = Column(String, nullable=True, unique=True)
     status = Column(String, default="pending", index=True)  # pending, processed, failed

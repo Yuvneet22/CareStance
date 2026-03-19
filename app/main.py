@@ -57,6 +57,7 @@ RAZORPAY_KEY_SECRET = os.getenv("RAZORPAY_KEY_SECRET", "your_key_secret")
 razorpay_client = razorpay.Client(auth=(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET))
 
 from .utils.redis_cache import ai_cache
+from .utils.cache_utils import user_cache
 
 async def generate_content_with_fallback(prompt):
     """
@@ -270,18 +271,32 @@ async def check_suspension(request: Request, call_next):
     if not is_exempt:
         user_id = request.cookies.get("user_id")
         if user_id:
-            db = SessionLocal()
             try:
-                # Need to handle potential non-integer user_id from cookies
-                try:
-                    uid = int(user_id)
-                    user = db.query(models.User).filter(models.User.id == uid).first()
-                    if user and user.is_suspended:
+                uid = int(user_id)
+                # 1. Check Cache First
+                cached_status = user_cache.get_user_status(uid)
+                if cached_status:
+                    if cached_status.get("is_suspended"):
                         return RedirectResponse(url="/suspended", status_code=status.HTTP_302_FOUND)
-                except ValueError:
-                    pass
-            finally:
-                db.close()
+                    return await call_next(request)
+
+                # 2. Cache Miss: Check DB
+                db = SessionLocal()
+                try:
+                    user = db.query(models.User).filter(models.User.id == uid).first()
+                    if user:
+                        # Cache the status
+                        user_cache.set_user_status(uid, {
+                            "is_suspended": user.is_suspended,
+                            "role": user.role,
+                            "full_name": user.full_name
+                        })
+                        if user.is_suspended:
+                            return RedirectResponse(url="/suspended", status_code=status.HTTP_302_FOUND)
+                finally:
+                    db.close()
+            except ValueError:
+                pass
     
     response = await call_next(request)
     return response
@@ -307,11 +322,11 @@ def get_current_user(request: Request, db: Session = Depends(get_db)):
     user_id = request.cookies.get("user_id")
     if not user_id:
         return None
-    user = db.query(models.User).filter(models.User.id == int(user_id)).first()
-    if user and user.is_suspended:
-        # We can handle this by returning None or setting a flag on the user object
-        # For now, let's just return the user but we'll check is_suspended in routes
-        pass
+    
+    uid = int(user_id)
+    # We could theoretically cache the whole user object, but SQLAlchemy objects are tied to sessions.
+    # For now, we hit the DB for the full object, but the middleware already protected the route.
+    user = db.query(models.User).filter(models.User.id == uid).first()
     return user
 
 # Routes
@@ -557,6 +572,7 @@ async def select_role(
     
     user.role = role
     db.commit()
+    user_cache.invalidate_user(user.id)
     
     # Create counsellor profile if needed
     if role == "counsellor":
@@ -1035,6 +1051,7 @@ async def suspend_user(user_id: int, request: Request, db: Session = Depends(get
     if user:
         user.is_suspended = True
         db.commit()
+        user_cache.invalidate_user(user.id)
     return RedirectResponse(url="/admin", status_code=status.HTTP_302_FOUND)
 
 @app.post("/admin/users/{user_id}/unsuspend")
@@ -1047,6 +1064,7 @@ async def unsuspend_user(user_id: int, request: Request, db: Session = Depends(g
     if user:
         user.is_suspended = False
         db.commit()
+        user_cache.invalidate_user(user.id)
     return RedirectResponse(url="/admin", status_code=status.HTTP_302_FOUND)
 
 @app.post("/admin/flags/{flag_id}/action")

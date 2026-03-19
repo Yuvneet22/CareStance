@@ -26,8 +26,10 @@ engine_args = {
 }
 
 if not SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
-    engine_args["pool_size"] = 10
-    engine_args["max_overflow"] = 20
+    engine_args["pool_size"] = 20
+    engine_args["max_overflow"] = 40
+    engine_args["pool_timeout"] = 30
+    engine_args["pool_recycle"] = 1800
 
 engine = create_engine(SQLALCHEMY_DATABASE_URL, **engine_args)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
