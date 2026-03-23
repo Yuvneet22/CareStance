@@ -209,7 +209,31 @@ def run_migrations():
                 migrations.append("ALTER TABLE counsellor_profiles ADD COLUMN razorpay_contact_id VARCHAR")
             if 'razorpay_fund_account_id' not in cp_cols:
                 migrations.append("ALTER TABLE counsellor_profiles ADD COLUMN razorpay_fund_account_id VARCHAR")
+            if 'average_rating' not in cp_cols:
+                migrations.append("ALTER TABLE counsellor_profiles ADD COLUMN average_rating FLOAT DEFAULT 5.0")
+            if 'rating_count' not in cp_cols:
+                migrations.append("ALTER TABLE counsellor_profiles ADD COLUMN rating_count INTEGER DEFAULT 0")
+            if 'is_founding_counsellor' not in cp_cols:
+                migrations.append("ALTER TABLE counsellor_profiles ADD COLUMN is_founding_counsellor BOOLEAN DEFAULT FALSE")
+            if 'founding_badge_awarded_at' not in cp_cols:
+                migrations.append("ALTER TABLE counsellor_profiles ADD COLUMN founding_badge_awarded_at TIMESTAMP")
+            if 'commission_free_until' not in cp_cols:
+                migrations.append("ALTER TABLE counsellor_profiles ADD COLUMN commission_free_until TIMESTAMP")
         
+        # Appointments table migrations
+        appt_cols = get_columns('appointments')
+        if appt_cols:
+            if 'counsellor_joined' not in appt_cols:
+                migrations.append("ALTER TABLE appointments ADD COLUMN counsellor_joined BOOLEAN DEFAULT FALSE")
+            if 'joined_at' not in appt_cols:
+                migrations.append("ALTER TABLE appointments ADD COLUMN joined_at TIMESTAMP")
+            if 'student_joined' not in appt_cols:
+                migrations.append("ALTER TABLE appointments ADD COLUMN student_joined BOOLEAN DEFAULT FALSE")
+            if 'student_joined_at' not in appt_cols:
+                migrations.append("ALTER TABLE appointments ADD COLUMN student_joined_at TIMESTAMP")
+            if 'actual_overlap_minutes' not in appt_cols:
+                migrations.append("ALTER TABLE appointments ADD COLUMN actual_overlap_minutes INTEGER DEFAULT 0")
+
         # StudentMessages table migrations
         sm_cols = get_columns('student_messages')
         if sm_cols:
