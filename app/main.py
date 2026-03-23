@@ -300,45 +300,13 @@ async def check_suspension(request: Request, call_next):
         if user_id:
             try:
                 uid = int(user_id)
-                # 1. Check Full Cache first (contains suspension status)
-                data = user_cache.get_user(uid)
-                if data:
-                    if data.get("is_suspended"):
-                        return RedirectResponse(url="/suspended", status_code=status.HTTP_302_FOUND)
-                    request.state.user = SimpleNamespace(**data)
-                    return await call_next(request)
-
-                # 2. Check Lightweight Cache status
+                # Quick cache-only check for suspension
                 cached_status = user_cache.get_user_status(uid)
-                if cached_status:
-                    if cached_status.get("is_suspended"):
-                        return RedirectResponse(url="/suspended", status_code=status.HTTP_302_FOUND)
-                    return await call_next(request)
+                if cached_status and cached_status.get("is_suspended"):
+                    return RedirectResponse(url="/suspended", status_code=status.HTTP_302_FOUND)
+            except Exception: pass
 
-                # 3. Cache Miss: Hit DB (last resort)
-                db = SessionLocal()
-                try:
-                    user = db.query(models.User).filter(models.User.id == uid).first()
-                    if user:
-                        user_dict = {
-                            "id": user.id, "email": user.email, "full_name": user.full_name,
-                            "role": user.role, "is_suspended": user.is_suspended
-                        }
-                        user_cache.set_user(uid, user_dict)
-                        if user.is_suspended:
-                            return RedirectResponse(url="/suspended", status_code=status.HTTP_302_FOUND)
-                finally:
-                    db.close()
-            except ValueError:
-                pass
-    
-    # 4. Global Static File Caching (Latency Optimization)
-    if path.startswith("/static/"):
-        response = await call_next(request)
-        # 1-week cache for static assets
-        response.headers["Cache-Control"] = "public, max-age=604800, immutable"
-        return response
-
+    # Skip caching for static files to keep response fast but headers default
     response = await call_next(request)
     return response
 
@@ -360,43 +328,13 @@ def get_password_hash(password):
     return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
 def get_current_user(request: Request, db: Session = Depends(get_db)):
-    # 1. Check request state (if middleware already fetched it)
-    if hasattr(request.state, "user"):
-        return request.state.user
-
     user_id = request.cookies.get("user_id")
-    if not user_id:
-        return None
-    
+    if not user_id: return None
     try:
         uid = int(user_id)
-        # 2. Check Redis Cache
-        data = user_cache.get_user(uid)
-        if data:
-            # Reconstruct dummy object that behaves like User model
-            # Note: Relationships like user.assessment won't work from cache
-            user = SimpleNamespace(**data)
-            request.state.user = user
-            return user
-            
-        # 3. Cache Miss: Hit Database
-        user = db.query(models.User).filter(models.User.id == uid).first()
-        if user:
-            # Cache for future use (exclude binary or huge fields)
-            user_dict = {
-                "id": user.id,
-                "email": user.email,
-                "full_name": user.full_name,
-                "role": user.role,
-                "contact_number": user.contact_number,
-                "is_suspended": user.is_suspended,
-                "profile_photo": user.profile_photo
-            }
-            user_cache.set_user(uid, user_dict)
-            request.state.user = user
-        return user
-    except (ValueError, TypeError):
-        return None
+        # Hit DB directly to avoid any weird dict issues in templates
+        return db.query(models.User).filter(models.User.id == uid).first()
+    except Exception: return None
 
 # Routes
 
