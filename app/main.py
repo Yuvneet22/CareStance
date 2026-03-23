@@ -315,9 +315,7 @@ async def check_suspension(request: Request, call_next):
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
 templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
-# Disable cache to bypass "unhashable type: 'dict'" errors in some server environments
-templates.env.cache = None
-# Removed env.globals assignment that caused unhashable type: 'dict' errors
+# Re-enabled cache as standard practice
 # pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto"]) # Removed
 
 def verify_password(plain_password, hashed_password):
@@ -353,11 +351,18 @@ async def ads_txt():
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request, db: Session = Depends(get_db)):
     user = get_current_user(request, db)
-    return templates.TemplateResponse("landing.html", {"request": request, "user": user})
+    try:
+        # Bypassing Starlette's TemplateResponse to avoid internal dict vs string ambiguity
+        template = templates.get_template("landing.html")
+        content = template.render({"request": request, "user": user})
+        return HTMLResponse(content=content)
+    except Exception as e:
+        import traceback
+        return HTMLResponse(content=f"Template Error: {e}<br><pre>{traceback.format_exc()}</pre>", status_code=500)
 
 @app.get("/signup", response_class=HTMLResponse)
 async def signup_page(request: Request):
-    return templates.TemplateResponse("signup.html", {"request": request})
+    return templates.TemplateResponse(request=request, name="signup.html")
 
 @app.post("/signup")
 async def signup(
@@ -372,7 +377,7 @@ async def signup(
     # Check existing user
     user = db.query(models.User).filter(models.User.email == email).first()
     if user:
-        return templates.TemplateResponse("signup.html", {"request": request, "error": "Email already exists"})
+        return templates.TemplateResponse(request=request, name="signup.html", context={"error": "Email already exists"})
     
     try:
         # Create User
@@ -390,13 +395,13 @@ async def signup(
     except Exception as e:
         print(f"Signup error: {e}")
         db.rollback()
-        return templates.TemplateResponse("signup.html", {"request": request, "error": "An error occurred during signup. Please try again."})
+        return templates.TemplateResponse(request=request, name="signup.html", context={"error": "An error occurred during signup. Please try again."})
     
     return RedirectResponse(url="/login?message=Account created! Please login.", status_code=status.HTTP_302_FOUND)
 
 @app.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):
-    return templates.TemplateResponse("login.html", {"request": request})
+    return templates.TemplateResponse(request=request, name="login.html")
 
 @app.post("/login")
 async def login(
@@ -407,7 +412,7 @@ async def login(
 ):
     user = db.query(models.User).filter(models.User.email == email).first()
     if not user or not verify_password(password, user.hashed_password):
-         return templates.TemplateResponse("login.html", {"request": request, "error": "Invalid credentials"})
+         return templates.TemplateResponse(request=request, name="login.html", context={"error": "Invalid credentials"})
     
     response = RedirectResponse(url="/dashboard", status_code=status.HTTP_302_FOUND)
     # 30 day persistent session
@@ -428,7 +433,7 @@ async def logout(response: Response):
 
 @app.get("/forgot-password", response_class=HTMLResponse)
 async def forgot_password_page(request: Request):
-    return templates.TemplateResponse("forgot_password.html", {"request": request})
+    return templates.TemplateResponse(request=request, name="forgot_password.html")
 
 @app.post("/forgot-password")
 async def forgot_password(
@@ -466,7 +471,7 @@ async def reset_password_page(request: Request, token: str):
             "request": request,
             "error": "The reset link is invalid or has expired."
         })
-    return templates.TemplateResponse("reset_password.html", {"request": request, "token": token})
+    return templates.TemplateResponse(request=request, name="reset_password.html", context={"token": token})
 
 @app.post("/reset-password/{token}")
 async def reset_password(
@@ -565,7 +570,7 @@ async def auth_callback(request: Request, db: Session = Depends(get_db)):
 
 @app.get("/suspended", response_class=HTMLResponse)
 async def suspended_page(request: Request):
-    return templates.TemplateResponse("suspended.html", {"request": request})
+    return templates.TemplateResponse(request=request, name="suspended.html")
 
 @app.get("/select-role", response_class=HTMLResponse)
 async def select_role_page(request: Request, db: Session = Depends(get_db)):
@@ -575,7 +580,7 @@ async def select_role_page(request: Request, db: Session = Depends(get_db)):
     # If user already has a role, skip this page
     if user.role:
         return RedirectResponse(url="/dashboard", status_code=status.HTTP_302_FOUND)
-    return templates.TemplateResponse("select_role.html", {"request": request, "user": user})
+    return templates.TemplateResponse(request=request, name="select_role.html", context={"user": user})
 
 @app.post("/select-role")
 async def select_role(
@@ -733,7 +738,7 @@ async def assessment_page(request: Request, db: Session = Depends(get_db)):
     user = get_current_user(request, db)
     if not user:
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
-    return templates.TemplateResponse("assessment.html", {"request": request, "user": user, "questions": QUESTIONS})
+    return templates.TemplateResponse(request=request, name="assessment.html", context={"user": user, "questions": QUESTIONS})
 
 @app.post("/assessment/submit")
 async def assessment_submit(
@@ -871,7 +876,7 @@ async def assessment_result(request: Request, db: Session = Depends(get_db)):
     if not result:
         return RedirectResponse(url="/assessment", status_code=status.HTTP_302_FOUND)
 
-    return templates.TemplateResponse("result.html", {"request": request, "user": user, "result": result})
+    return templates.TemplateResponse(request=request, name="result.html", context={"user": user, "result": result})
 
 @app.get("/share/report/{result_id}", response_class=HTMLResponse)
 async def share_report(result_id: int, request: Request, mode: str = "full", db: Session = Depends(get_db)):
@@ -883,8 +888,7 @@ async def share_report(result_id: int, request: Request, mode: str = "full", db:
     owner = db.query(models.User).filter(models.User.id == result.user_id).first()
     current_user = get_current_user(request, db)
     
-    return templates.TemplateResponse("result.html", {
-        "request": request, 
+    return templates.TemplateResponse(request=request, name="result.html", context={
         "user": current_user, 
         "owner": owner,
         "result": result,
@@ -1546,7 +1550,7 @@ async def list_counsellors(request: Request, db: Session = Depends(get_db)):
         models.CounsellorProfile.is_blocked == False
     ).all()
     
-    return templates.TemplateResponse("counsellors_list.html", {"request": request, "user": user, "counsellors": counsellors})
+    return templates.TemplateResponse(request=request, name="counsellors_list.html", context={"user": user, "counsellors": counsellors})
 
 import datetime
 import uuid
@@ -2004,7 +2008,7 @@ async def verify_payment(request: Request, background_tasks: BackgroundTasks, db
         db.rollback()
         return RedirectResponse(url="/counsellors?error=Database error during payment processing", status_code=status.HTTP_302_FOUND)
 
-    return templates.TemplateResponse("appointment_success.html", {"request": request, "user": user, "appointment": appointment, "is_request": True})
+    return templates.TemplateResponse(request=request, name="appointment_success.html", context={"user": user, "appointment": appointment, "is_request": True})
 
 @app.post("/appointment/accept/{appt_id}")
 async def accept_appointment(appt_id: int, request: Request, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
@@ -2384,7 +2388,7 @@ async def assessment_final(request: Request, db: Session = Depends(get_db)):
         context["mode"] = "10th"
         context["sections"] = all_questions
 
-    return templates.TemplateResponse("assessment_final.html", context)
+    return templates.TemplateResponse(request=request, name="assessment_final.html", context=context)
 
 @app.post("/assessment/final/submit")
 async def assessment_final_submit(request: Request, db: Session = Depends(get_db)):
@@ -2863,7 +2867,7 @@ async def chatbot_page(request: Request, db: Session = Depends(get_db)):
     # Fetch History
     history = db.query(models.ChatMessage).filter(models.ChatMessage.user_id == user.id).order_by(models.ChatMessage.timestamp).all()
     
-    return templates.TemplateResponse("chatbot.html", {"request": request, "user": user, "history": history})
+    return templates.TemplateResponse(request=request, name="chatbot.html", context={"user": user, "history": history})
 
 @app.post("/assessment/resolve-voice")
 async def resolve_voice(req: ResolveVoiceRequest):
@@ -3035,7 +3039,7 @@ async def feedback_page(request: Request, db: Session = Depends(get_db)):
     user = get_current_user(request, db)
     if not user:
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
-    return templates.TemplateResponse("feedback.html", {"request": request, "user": user})
+    return templates.TemplateResponse(request=request, name="feedback.html", context={"user": user})
 
 @app.post("/feedback")
 async def submit_feedback(
@@ -3066,7 +3070,7 @@ async def ticket_page(request: Request, db: Session = Depends(get_db)):
     if not user:
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
     tickets = db.query(models.Ticket).filter(models.Ticket.user_id == user.id).order_by(models.Ticket.timestamp.desc()).all()
-    return templates.TemplateResponse("ticket.html", {"request": request, "user": user, "tickets": tickets})
+    return templates.TemplateResponse(request=request, name="ticket.html", context={"user": user, "tickets": tickets})
 
 @app.post("/ticket/submit")
 async def submit_ticket(
@@ -3291,7 +3295,7 @@ async def view_roadmaps(request: Request, db: Session = Depends(get_db)):
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
     
     paths = db.query(models.CareerPath).filter(models.CareerPath.user_id == user.id).all()
-    return templates.TemplateResponse("career_roadmaps.html", {"request": request, "user": user, "paths": paths})
+    return templates.TemplateResponse(request=request, name="career_roadmaps.html", context={"user": user, "paths": paths})
 
 @app.get("/career/roadmap/{path_id}", response_class=HTMLResponse)
 async def view_roadmap_detail(path_id: int, request: Request, db: Session = Depends(get_db)):
@@ -3439,7 +3443,7 @@ async def view_college_recommendations(request: Request, db: Session = Depends(g
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
 
     recs = db.query(models.CollegeRecommendation).filter(models.CollegeRecommendation.user_id == user.id).order_by(models.CollegeRecommendation.created_at.desc()).all()
-    return templates.TemplateResponse("college_recommendations.html", {"request": request, "user": user, "recs": recs})
+    return templates.TemplateResponse(request=request, name="college_recommendations.html", context={"user": user, "recs": recs})
 
 
 @app.get("/career/colleges/{rec_id}", response_class=HTMLResponse)
@@ -3455,7 +3459,7 @@ async def view_college_detail(rec_id: int, request: Request, db: Session = Depen
     if not rec:
         raise HTTPException(status_code=404, detail="College recommendation not found")
 
-    return templates.TemplateResponse("college_detail.html", {"request": request, "user": user, "rec": rec})
+    return templates.TemplateResponse(request=request, name="college_detail.html", context={"user": user, "rec": rec})
 
 
 # ─── Student Community & Connection Routes ────────────────────────────────────
@@ -3991,12 +3995,12 @@ if __name__ == "__main__":
 @app.get("/privacy", response_class=HTMLResponse)
 async def privacy_page(request: Request, db: Session = Depends(get_db)):
     user = get_current_user(request, db)
-    return templates.TemplateResponse("privacy.html", {"request": request, "user": user})
+    return templates.TemplateResponse(request=request, name="privacy.html", context={"user": user})
 
 @app.get("/terms", response_class=HTMLResponse)
 async def terms_page(request: Request, db: Session = Depends(get_db)):
     user = get_current_user(request, db)
-    return templates.TemplateResponse("terms.html", {"request": request, "user": user})
+    return templates.TemplateResponse(request=request, name="terms.html", context={"user": user})
 
 @app.get("/debug/migrate")
 async def debug_migrate(request: Request, db: Session = Depends(get_db)):
