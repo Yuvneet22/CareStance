@@ -1,3 +1,5 @@
+import warnings
+from types import SimpleNamespace
 from fastapi import FastAPI, Depends, HTTPException, status, Request, Form, Response, BackgroundTasks, File, UploadFile
 from pydantic import BaseModel
 from typing import List, Optional
@@ -24,6 +26,13 @@ from authlib.integrations.starlette_client import OAuth
 from groq import AsyncGroq
 import razorpay
 from . import models, email_utils
+from .email_utils import (
+    send_email, 
+    get_booking_template, 
+    get_cancellation_template, 
+    get_reset_password_template, 
+    get_connection_request_template
+)
 from itsdangerous import URLSafeTimedSerializer
 from .data.career_keywords import career_keywords
 from .utils.resource_aggregator import ResourceAggregator
@@ -164,67 +173,74 @@ def run_migrations():
         
         migrations = []
         
-        # Users table migrations
-        user_cols = get_columns('users')
-        if user_cols and 'profile_photo' not in user_cols:
-            migrations.append("ALTER TABLE users ADD COLUMN profile_photo VARCHAR")
-        if user_cols and 'bio' not in user_cols:
-            migrations.append("ALTER TABLE users ADD COLUMN bio TEXT")
-        if user_cols and 'is_suspended' not in user_cols:
-            migrations.append("ALTER TABLE users ADD COLUMN is_suspended BOOLEAN DEFAULT FALSE")
-        
-        # CounsellorProfile table migrations
+        # 1. Users table
+        u_cols = get_columns('users')
+        if u_cols:
+            if 'profile_photo' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN profile_photo VARCHAR")
+            if 'bio' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN bio TEXT")
+            if 'is_suspended' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN is_suspended BOOLEAN DEFAULT FALSE")
+            if 'contact_number' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN contact_number VARCHAR")
+            if 'full_name' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN full_name VARCHAR")
+            if 'role' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN role VARCHAR")
+
+        # 2. Counsellor Profiles
         cp_cols = get_columns('counsellor_profiles')
         if cp_cols:
-            if 'tnc_accepted' not in cp_cols:
-                migrations.append("ALTER TABLE counsellor_profiles ADD COLUMN tnc_accepted BOOLEAN DEFAULT FALSE")
-            if 'tnc_accepted_at' not in cp_cols:
-                migrations.append("ALTER TABLE counsellor_profiles ADD COLUMN tnc_accepted_at TIMESTAMP")
-            if 'is_blocked' not in cp_cols:
-                migrations.append("ALTER TABLE counsellor_profiles ADD COLUMN is_blocked BOOLEAN DEFAULT FALSE")
-            if 'block_reason' not in cp_cols:
-                migrations.append("ALTER TABLE counsellor_profiles ADD COLUMN block_reason VARCHAR")
-            if 'certificates' not in cp_cols:
-                migrations.append("ALTER TABLE counsellor_profiles ADD COLUMN certificates TEXT")
-            if 'experience' not in cp_cols:
-                migrations.append("ALTER TABLE counsellor_profiles ADD COLUMN experience TEXT")
-            if 'is_verified' not in cp_cols:
-                migrations.append("ALTER TABLE counsellor_profiles ADD COLUMN is_verified BOOLEAN DEFAULT FALSE")
-            if 'verification_status' not in cp_cols:
-                migrations.append("ALTER TABLE counsellor_profiles ADD COLUMN verification_status VARCHAR DEFAULT 'pending'")
-            if 'fee_locked' not in cp_cols:
-                migrations.append("ALTER TABLE counsellor_profiles ADD COLUMN fee_locked BOOLEAN DEFAULT FALSE")
-            if 'razorpay_account_id' not in cp_cols:
-                migrations.append("ALTER TABLE counsellor_profiles ADD COLUMN razorpay_account_id VARCHAR")
-            if 'onboarding_status' not in cp_cols:
-                migrations.append("ALTER TABLE counsellor_profiles ADD COLUMN onboarding_status VARCHAR DEFAULT 'not_started'")
-            if 'razorpay_contact_id' not in cp_cols:
-                migrations.append("ALTER TABLE counsellor_profiles ADD COLUMN razorpay_contact_id VARCHAR")
-            if 'razorpay_fund_account_id' not in cp_cols:
-                migrations.append("ALTER TABLE counsellor_profiles ADD COLUMN razorpay_fund_account_id VARCHAR")
-        
-        # StudentMessages table migrations
+            checklist = [
+                ('tnc_accepted', "BOOLEAN DEFAULT FALSE"), ('tnc_accepted_at', "TIMESTAMP"),
+                ('is_blocked', "BOOLEAN DEFAULT FALSE"), ('block_reason', "VARCHAR"),
+                ('certificates', "TEXT"), ('experience', "TEXT"),
+                ('is_verified', "BOOLEAN DEFAULT FALSE"), ('verification_status', "VARCHAR DEFAULT 'pending'"),
+                ('fee_locked', "BOOLEAN DEFAULT FALSE"), ('razorpay_account_id', "VARCHAR"),
+                ('onboarding_status', "VARCHAR DEFAULT 'not_started'"), ('razorpay_contact_id', "VARCHAR"),
+                ('razorpay_fund_account_id', "VARCHAR"), ('average_rating', "FLOAT DEFAULT 5.0"),
+                ('rating_count', "INTEGER DEFAULT 0"), ('is_founding_counsellor', "BOOLEAN DEFAULT FALSE"),
+                ('founding_badge_awarded_at', "TIMESTAMP"), ('commission_free_until', "TIMESTAMP")
+            ]
+            for col, ty in checklist:
+                if col not in cp_cols: migrations.append(f"ALTER TABLE counsellor_profiles ADD COLUMN {col} {ty}")
+
+        # 3. Appointments
+        ap_cols = get_columns('appointments')
+        if ap_cols:
+            for col, ty in [('counsellor_joined', 'BOOLEAN DEFAULT FALSE'), ('joined_at', 'TIMESTAMP'), 
+                           ('student_joined', 'BOOLEAN DEFAULT FALSE'), ('student_joined_at', 'TIMESTAMP'),
+                           ('actual_overlap_minutes', 'INTEGER DEFAULT 0')]:
+                if col not in ap_cols: migrations.append(f"ALTER TABLE appointments ADD COLUMN {col} {ty}")
+
+        # 4. Student Messages
         sm_cols = get_columns('student_messages')
         if sm_cols:
-            if 'attachment_path' not in sm_cols:
-                migrations.append("ALTER TABLE student_messages ADD COLUMN attachment_path VARCHAR")
-            if 'attachment_type' not in sm_cols:
-                migrations.append("ALTER TABLE student_messages ADD COLUMN attachment_type VARCHAR")
-        
+            if 'attachment_path' not in sm_cols: migrations.append("ALTER TABLE student_messages ADD COLUMN attachment_path VARCHAR")
+            if 'attachment_type' not in sm_cols: migrations.append("ALTER TABLE student_messages ADD COLUMN attachment_type VARCHAR")
+
+        # 5. Assessment Results
+        ar_cols = get_columns('assessment_results')
+        if ar_cols:
+            for col, ty in [('selected_class', 'VARCHAR'), ('phase3_result', 'VARCHAR'), 
+                           ('phase3_answers', 'JSON'), ('phase3_analysis', 'TEXT'),
+                           ('final_answers', 'JSON'), ('stream_scores', 'JSON'),
+                           ('recommended_stream', 'VARCHAR'), ('final_analysis', 'TEXT'),
+                           ('stream_pros', 'JSON'), ('stream_cons', 'JSON')]:
+                if col not in ar_cols: migrations.append(f"ALTER TABLE assessment_results ADD COLUMN {col} {ty}")
+
         if migrations:
+            print(f"DEBUG: Found {len(migrations)} pending migrations.", flush=True)
             with engine.connect() as conn:
                 for sql in migrations:
                     try:
                         conn.execute(text(sql))
-                        print(f"Migration OK: {sql}")
+                        print(f"DATABASE MIGRATION SUCCESS: {sql}", flush=True)
                     except Exception as me:
-                        print(f"Migration skip: {me}")
+                        print(f"DATABASE MIGRATION SKIP/ERROR: {sql} -> {me}", flush=True)
                 conn.commit()
-            print(f"Ran {len(migrations)} migrations successfully")
+            print(f"DATABASE: Finished running {len(migrations)} migration queries.", flush=True)
         else:
-            print("No migrations needed")
+            print("DATABASE: No new migrations detected.", flush=True)
     except Exception as e:
-        print(f"Migration check error: {e}")
+        print(f"DATABASE FATAL ERROR during migration check: {e}", flush=True)
+        import traceback
+        traceback.print_exc()
 
 run_migrations()
 
@@ -233,6 +249,17 @@ app = FastAPI(title="CareStance")
 # ─── Include Split Payments Router (Razorpay Route) ───────────────────────────
 from .routes.payments import router as payments_router
 app.include_router(payments_router)
+
+# Global Exception Handler for better debugging
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    import traceback
+    print(f"GLOBAL ERROR: {exc}", flush=True)
+    traceback.print_exc()
+    return HTMLResponse(
+        content=f"<html><body><h1>Internal Server Error</h1><p>{exc}</p><pre>{traceback.format_exc()}</pre></body></html>",
+        status_code=500
+    )
 
 from fastapi.middleware.gzip import GZipMiddleware
 app.add_middleware(GZipMiddleware, minimum_size=1000)
@@ -273,31 +300,13 @@ async def check_suspension(request: Request, call_next):
         if user_id:
             try:
                 uid = int(user_id)
-                # 1. Check Cache First
+                # Quick cache-only check for suspension
                 cached_status = user_cache.get_user_status(uid)
-                if cached_status:
-                    if cached_status.get("is_suspended"):
-                        return RedirectResponse(url="/suspended", status_code=status.HTTP_302_FOUND)
-                    return await call_next(request)
+                if cached_status and cached_status.get("is_suspended"):
+                    return RedirectResponse(url="/suspended", status_code=status.HTTP_302_FOUND)
+            except Exception: pass
 
-                # 2. Cache Miss: Check DB
-                db = SessionLocal()
-                try:
-                    user = db.query(models.User).filter(models.User.id == uid).first()
-                    if user:
-                        # Cache the status
-                        user_cache.set_user_status(uid, {
-                            "is_suspended": user.is_suspended,
-                            "role": user.role,
-                            "full_name": user.full_name
-                        })
-                        if user.is_suspended:
-                            return RedirectResponse(url="/suspended", status_code=status.HTTP_302_FOUND)
-                finally:
-                    db.close()
-            except ValueError:
-                pass
-    
+    # Skip caching for static files to keep response fast but headers default
     response = await call_next(request)
     return response
 
@@ -306,7 +315,7 @@ async def check_suspension(request: Request, call_next):
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
 templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
-templates.env.globals["RAZORPAY_KEY_ID"] = RAZORPAY_KEY_ID
+# Re-enabled cache as standard practice
 # pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto"]) # Removed
 
 def verify_password(plain_password, hashed_password):
@@ -320,14 +329,12 @@ def get_password_hash(password):
 
 def get_current_user(request: Request, db: Session = Depends(get_db)):
     user_id = request.cookies.get("user_id")
-    if not user_id:
-        return None
-    
-    uid = int(user_id)
-    # We could theoretically cache the whole user object, but SQLAlchemy objects are tied to sessions.
-    # For now, we hit the DB for the full object, but the middleware already protected the route.
-    user = db.query(models.User).filter(models.User.id == uid).first()
-    return user
+    if not user_id: return None
+    try:
+        uid = int(user_id)
+        # Hit DB directly to avoid any weird dict issues in templates
+        return db.query(models.User).filter(models.User.id == uid).first()
+    except Exception: return None
 
 # Routes
 
@@ -344,11 +351,18 @@ async def ads_txt():
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request, db: Session = Depends(get_db)):
     user = get_current_user(request, db)
-    return templates.TemplateResponse("landing.html", {"request": request, "user": user})
+    try:
+        # Bypassing Starlette's TemplateResponse to avoid internal dict vs string ambiguity
+        template = templates.get_template("landing.html")
+        content = template.render({"request": request, "user": user})
+        return HTMLResponse(content=content)
+    except Exception as e:
+        import traceback
+        return HTMLResponse(content=f"Template Error: {e}<br><pre>{traceback.format_exc()}</pre>", status_code=500)
 
 @app.get("/signup", response_class=HTMLResponse)
 async def signup_page(request: Request):
-    return templates.TemplateResponse("signup.html", {"request": request})
+    return templates.TemplateResponse(request=request, name="signup.html")
 
 @app.post("/signup")
 async def signup(
@@ -363,28 +377,31 @@ async def signup(
     # Check existing user
     user = db.query(models.User).filter(models.User.email == email).first()
     if user:
-        return templates.TemplateResponse("signup.html", {"request": request, "error": "Email already exists"})
+        return templates.TemplateResponse(request=request, name="signup.html", context={"error": "Email already exists"})
     
-    # Create User
-    hashed_pw = get_password_hash(password)
-    new_user = models.User(email=email, hashed_password=hashed_pw, full_name=full_name, contact_number=contact_number, role=role)
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
-    
-    # Create Counsellor Profile
-    if role == "counsellor":
-        c_profile = models.CounsellorProfile(user_id=new_user.id)
-        db.add(c_profile)
+    try:
+        # Create User
+        hashed_pw = get_password_hash(password)
+        new_user = models.User(email=email, hashed_password=hashed_pw, full_name=full_name, contact_number=contact_number, role=role)
+        db.add(new_user)
+        db.flush()
+        
+        # Create Counsellor Profile
+        if role == "counsellor":
+            c_profile = models.CounsellorProfile(user_id=new_user.id)
+            db.add(c_profile)
+        
         db.commit()
+    except Exception as e:
+        print(f"Signup error: {e}")
+        db.rollback()
+        return templates.TemplateResponse(request=request, name="signup.html", context={"error": "An error occurred during signup. Please try again."})
     
-    # Login & Redirect
-    # Redirect to Login (No auto-login)
-    return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+    return RedirectResponse(url="/login?message=Account created! Please login.", status_code=status.HTTP_302_FOUND)
 
 @app.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):
-    return templates.TemplateResponse("login.html", {"request": request})
+    return templates.TemplateResponse(request=request, name="login.html")
 
 @app.post("/login")
 async def login(
@@ -395,7 +412,7 @@ async def login(
 ):
     user = db.query(models.User).filter(models.User.email == email).first()
     if not user or not verify_password(password, user.hashed_password):
-         return templates.TemplateResponse("login.html", {"request": request, "error": "Invalid credentials"})
+         return templates.TemplateResponse(request=request, name="login.html", context={"error": "Invalid credentials"})
     
     response = RedirectResponse(url="/dashboard", status_code=status.HTTP_302_FOUND)
     # 30 day persistent session
@@ -416,7 +433,7 @@ async def logout(response: Response):
 
 @app.get("/forgot-password", response_class=HTMLResponse)
 async def forgot_password_page(request: Request):
-    return templates.TemplateResponse("forgot_password.html", {"request": request})
+    return templates.TemplateResponse(request=request, name="forgot_password.html")
 
 @app.post("/forgot-password")
 async def forgot_password(
@@ -439,8 +456,7 @@ async def forgot_password(
         )
     
     # Always show success message for security (don't reveal if email exists)
-    return templates.TemplateResponse("forgot_password.html", {
-        "request": request, 
+    return templates.TemplateResponse(request=request, name="forgot_password.html", context={
         "message": "If an account exists with that email, a reset link has been sent."
     })
 
@@ -450,11 +466,10 @@ async def reset_password_page(request: Request, token: str):
         # Token valid for 1 hour (3600 seconds)
         email = serializer.loads(token, salt="password-reset-salt", max_age=3600)
     except Exception:
-        return templates.TemplateResponse("forgot_password.html", {
-            "request": request,
+        return templates.TemplateResponse(request=request, name="forgot_password.html", context={
             "error": "The reset link is invalid or has expired."
         })
-    return templates.TemplateResponse("reset_password.html", {"request": request, "token": token})
+    return templates.TemplateResponse(request=request, name="reset_password.html", context={"token": token})
 
 @app.post("/reset-password/{token}")
 async def reset_password(
@@ -467,14 +482,12 @@ async def reset_password(
     try:
         email = serializer.loads(token, salt="password-reset-salt", max_age=3600)
     except Exception:
-         return templates.TemplateResponse("forgot_password.html", {
-            "request": request,
+         return templates.TemplateResponse(request=request, name="forgot_password.html", context={
             "error": "The reset link is invalid or has expired."
         })
     
     if password != confirm_password:
-        return templates.TemplateResponse("reset_password.html", {
-            "request": request, 
+        return templates.TemplateResponse(request=request, name="reset_password.html", context={
             "token": token, 
             "error": "Passwords do not match"
         })
@@ -483,8 +496,16 @@ async def reset_password(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
-    user.hashed_password = get_password_hash(password)
-    db.commit()
+    try:
+        user.hashed_password = get_password_hash(password)
+        db.commit()
+    except Exception as e:
+        print(f"Password reset error: {e}")
+        db.rollback()
+        return templates.TemplateResponse(request=request, name="reset_password.html", context={
+            "token": token, 
+            "error": "Failed to update password. Please try again."
+        })
     
     return RedirectResponse(url="/login?message=Password updated successfully", status_code=status.HTTP_302_FOUND)
 
@@ -536,15 +557,15 @@ async def auth_callback(request: Request, db: Session = Depends(get_db)):
         db.refresh(user)
         is_new_user = True
     
-    # New users must select their role first
-    redirect_url = "/select-role" if is_new_user else "/dashboard"
+    # Users without a role must select it first
+    redirect_url = "/select-role" if (is_new_user or not user.role) else "/dashboard"
     response = RedirectResponse(url=redirect_url, status_code=status.HTTP_302_FOUND)
     response.set_cookie(key="user_id", value=str(user.id))
     return response
 
 @app.get("/suspended", response_class=HTMLResponse)
 async def suspended_page(request: Request):
-    return templates.TemplateResponse("suspended.html", {"request": request})
+    return templates.TemplateResponse(request=request, name="suspended.html")
 
 @app.get("/select-role", response_class=HTMLResponse)
 async def select_role_page(request: Request, db: Session = Depends(get_db)):
@@ -554,7 +575,7 @@ async def select_role_page(request: Request, db: Session = Depends(get_db)):
     # If user already has a role, skip this page
     if user.role:
         return RedirectResponse(url="/dashboard", status_code=status.HTTP_302_FOUND)
-    return templates.TemplateResponse("select_role.html", {"request": request, "user": user})
+    return templates.TemplateResponse(request=request, name="select_role.html", context={"user": user})
 
 @app.post("/select-role")
 async def select_role(
@@ -566,29 +587,28 @@ async def select_role(
     if not user:
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
     
-    # Validate role
-    if role not in ("student", "counsellor"):
-        return RedirectResponse(url="/select-role", status_code=status.HTTP_302_FOUND)
-    
-    user.role = role
-    db.commit()
-    user_cache.invalidate_user(user.id)
-    
-    # Create counsellor profile if needed
-    if role == "counsellor":
-        existing_profile = db.query(models.CounsellorProfile).filter(models.CounsellorProfile.user_id == user.id).first()
-        if not existing_profile:
-            c_profile = models.CounsellorProfile(
-                user_id=user.id,
-                tnc_accepted=True,
-                tnc_accepted_at=datetime.datetime.utcnow()
-            )
-            db.add(c_profile)
-            db.commit()
-        else:
-            existing_profile.tnc_accepted = True
-            existing_profile.tnc_accepted_at = datetime.datetime.utcnow()
-            db.commit()
+    try:
+        if role not in ("student", "counsellor"):
+            return RedirectResponse(url="/select-role", status_code=status.HTTP_302_FOUND)
+            
+        user.role = role
+        db.add(user)
+        
+        # Create counsellor profile if needed
+        if role == "counsellor":
+            existing_profile = db.query(models.CounsellorProfile).filter(models.CounsellorProfile.user_id == user.id).first()
+            if not existing_profile:
+                profile = models.CounsellorProfile(user_id=user.id)
+                db.add(profile)
+        
+        db.commit()
+        user_cache.invalidate_user(user.id)
+    except Exception as e:
+        print(f"Role selection error: {e}")
+        db.rollback()
+        return templates.TemplateResponse(request=request, name="select_role.html", context={
+            "error": "An error occurred while saving your role. Please try again."
+        })
     
     return RedirectResponse(url="/dashboard", status_code=status.HTTP_302_FOUND)
 
@@ -687,15 +707,21 @@ async def assessment_start(request: Request, class_level: str, db: Session = Dep
     if not user:
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
     
-    # Check/Create Result
-    result = db.query(models.AssessmentResult).filter(models.AssessmentResult.user_id == user.id).first()
-    if not result:
-        result = models.AssessmentResult(user_id=user.id)
-        db.add(result)
-    
-    # Save Phase 1 Selection
-    result.selected_class = class_level
-    db.commit()
+    try:
+        # Check/Create Result
+        result = db.query(models.AssessmentResult).filter(models.AssessmentResult.user_id == user.id).first()
+        if not result:
+            result = models.AssessmentResult(user_id=user.id)
+            db.add(result)
+        
+        # Save Phase 1 Selection
+        result.selected_class = class_level
+        db.commit()
+    except Exception as e:
+        print(f"Assessment start error: {e}")
+        db.rollback()
+        # Fallback to landing or dashboard
+        return RedirectResponse(url="/dashboard?error=Assessment+failed+to+start", status_code=status.HTTP_302_FOUND)
     
     # Proceed to Phase 2 (Archetype)
     return RedirectResponse(url="/assessment", status_code=status.HTTP_302_FOUND)
@@ -706,7 +732,7 @@ async def assessment_page(request: Request, db: Session = Depends(get_db)):
     user = get_current_user(request, db)
     if not user:
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
-    return templates.TemplateResponse("assessment.html", {"request": request, "user": user, "questions": QUESTIONS})
+    return templates.TemplateResponse(request=request, name="assessment.html", context={"user": user, "questions": QUESTIONS})
 
 @app.post("/assessment/submit")
 async def assessment_submit(
@@ -797,37 +823,42 @@ async def assessment_submit(
                 "phase_2_category": "Focused Specialist",
                 "personality": "Ambivert",
                 "goal_status": "Exploring",
-                "confidence": 0.5,
+            "confidence": 0.5,
                 "reasoning": "AI Analysis unavailable. Default profile assigned based on answers."
             }
 
     # 4. Save to DB
-    existing_result = db.query(models.AssessmentResult).filter(models.AssessmentResult.user_id == user.id).first()
-    
-    if existing_result:
-        # Update existing
-        existing_result.phase_2_category = result_data.get("phase_2_category")
-        existing_result.personality = result_data.get("personality")
-        existing_result.goal_status = result_data.get("goal_status")
-        existing_result.confidence = result_data.get("confidence")
-        existing_result.reasoning = result_data.get("reasoning")
-        existing_result.raw_answers = user_answers_data # This overwrites phase 1 raw answers if any, but selected_class is separate column
-    else:
-        # Create new
-        new_result = models.AssessmentResult(
-            user_id=user.id,
-            phase_2_category=result_data.get("phase_2_category"),
-            personality=result_data.get("personality"),
-            goal_status=result_data.get("goal_status"),
-            confidence=result_data.get("confidence"),
-            reasoning=result_data.get("reasoning"),
-            raw_answers=user_answers_data
-        )
-        db.add(new_result)
-    
-    db.commit()
+    try:
+        existing_result = db.query(models.AssessmentResult).filter(models.AssessmentResult.user_id == user.id).first()
+        
+        if existing_result:
+            # Update existing
+            existing_result.phase_2_category = result_data.get("phase_2_category")
+            existing_result.personality = result_data.get("personality")
+            existing_result.goal_status = result_data.get("goal_status")
+            existing_result.confidence = result_data.get("confidence")
+            existing_result.reasoning = result_data.get("reasoning")
+            existing_result.raw_answers = user_answers_data # This overwrites phase 1 raw answers if any, but selected_class is separate column
+        else:
+            # Create new
+            new_result = models.AssessmentResult(
+                user_id=user.id,
+                phase_2_category=result_data.get("phase_2_category"),
+                personality=result_data.get("personality"),
+                goal_status=result_data.get("goal_status"),
+                confidence=result_data.get("confidence"),
+                reasoning=result_data.get("reasoning"),
+                raw_answers=user_answers_data
+            )
+            db.add(new_result)
+        
+        db.commit()
+    except Exception as e:
+        print(f"Assessment save error: {e}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Failed to save assessment results. Please try again.")
 
-    return RedirectResponse(url="/assessment/result", status_code=status.HTTP_302_FOUND)
+    return RedirectResponse(url="/dashboard", status_code=status.HTTP_302_FOUND)
 
 @app.get("/assessment/result", response_class=HTMLResponse)
 async def assessment_result(request: Request, db: Session = Depends(get_db)):
@@ -839,7 +870,7 @@ async def assessment_result(request: Request, db: Session = Depends(get_db)):
     if not result:
         return RedirectResponse(url="/assessment", status_code=status.HTTP_302_FOUND)
 
-    return templates.TemplateResponse("result.html", {"request": request, "user": user, "result": result})
+    return templates.TemplateResponse(request=request, name="result.html", context={"user": user, "result": result})
 
 @app.get("/share/report/{result_id}", response_class=HTMLResponse)
 async def share_report(result_id: int, request: Request, mode: str = "full", db: Session = Depends(get_db)):
@@ -851,8 +882,7 @@ async def share_report(result_id: int, request: Request, mode: str = "full", db:
     owner = db.query(models.User).filter(models.User.id == result.user_id).first()
     current_user = get_current_user(request, db)
     
-    return templates.TemplateResponse("result.html", {
-        "request": request, 
+    return templates.TemplateResponse(request=request, name="result.html", context={
         "user": current_user, 
         "owner": owner,
         "result": result,
@@ -882,16 +912,84 @@ async def dashboard(request: Request, db: Session = Depends(get_db)):
             models.Notification.user_id == user.id,
             models.Notification.is_read == False
         ).order_by(models.Notification.created_at.desc()).all()
-        return templates.TemplateResponse("counsellor_dashboard.html", {"request": request, "user": user, "profile": profile, "appointments": appointments, "notifications": notifications})
+
+        # --- Overview Panel Metrics ---
+        from sqlalchemy import func
+        from datetime import date, timedelta
+        
+        today = date.today()
+        month_start = today.replace(day=1)
+
+        # 👥 Total Clients (Unique students who have booked at least one session)
+        total_clients = db.query(models.Appointment.student_id).filter(
+            models.Appointment.counsellor_id == user.id
+        ).distinct().count()
+
+        # 📅 Today’s Sessions
+        today_sessions = db.query(models.Appointment).filter(
+            models.Appointment.counsellor_id == user.id,
+            func.date(models.Appointment.appointment_time) == today,
+            models.Appointment.status == "scheduled"
+        ).count()
+
+        # 💰 Earnings
+        # Daily Earnings (Transfers processed today)
+        earnings_daily = db.query(func.sum(models.Transfer.amount)).filter(
+            models.Transfer.counsellor_id == user.id,
+            func.date(models.Transfer.created_at) == today,
+            models.Transfer.status == "processed"
+        ).scalar() or 0.0
+
+        # Monthly Earnings (Transfers processed this month)
+        earnings_monthly = db.query(func.sum(models.Transfer.amount)).filter(
+            models.Transfer.counsellor_id == user.id,
+            models.Transfer.created_at >= month_start,
+            models.Transfer.status == "processed"
+        ).scalar() or 0.0
+
+        # 📈 Active vs Inactive Clients (Active = had a session in the last 30 days)
+        last_30_days = today - timedelta(days=30)
+        active_clients = db.query(models.Appointment.student_id).filter(
+            models.Appointment.counsellor_id == user.id,
+            models.Appointment.appointment_time >= last_30_days
+        ).distinct().count()
+        inactive_clients = total_clients - active_clients
+
+        # ⭐ Rating
+        avg_rating = profile.average_rating if (profile and profile.average_rating is not None) else 5.0
+
+        # Fetch recent reviews
+        recent_reviews = db.query(models.CounselorRating).filter(
+            models.CounselorRating.counsellor_id == user.id
+        ).order_by(models.CounselorRating.timestamp.desc()).limit(5).all()
+
+        dashboard_stats = {
+            "total_clients": total_clients,
+            "today_sessions": today_sessions,
+            "earnings_daily": earnings_daily,
+            "earnings_monthly": earnings_monthly,
+            "active_clients": active_clients,
+            "inactive_clients": max(0, inactive_clients),
+            "avg_rating": avg_rating
+        }
+
+        return templates.TemplateResponse(request=request, name="counsellor_dashboard.html", context={
+            "user": user, 
+            "profile": profile, 
+            "appointments": appointments, 
+            "notifications": notifications,
+            "stats": dashboard_stats,
+            "reviews": recent_reviews
+        })
     
     # Fetch assessment result to show on dashboard
     assessment = db.query(models.AssessmentResult).filter(models.AssessmentResult.user_id == user.id).first()
     
-    # Fetch student appointments (active only)
+    # Fetch student appointments (scheduled & completed for rating)
     appointments = db.query(models.Appointment).filter(
         models.Appointment.student_id == user.id,
-        models.Appointment.status == "scheduled"
-    ).all()
+        models.Appointment.status.in_(["scheduled", "completed"])
+    ).order_by(models.Appointment.appointment_time.desc()).all()
     
     # Fetch student tickets
     tickets = db.query(models.Ticket).filter(models.Ticket.user_id == user.id).order_by(models.Ticket.timestamp.desc()).all()
@@ -902,8 +1000,7 @@ async def dashboard(request: Request, db: Session = Depends(get_db)):
         models.StudentConnection.status == "pending"
     ).count()
     
-    return templates.TemplateResponse("dashboard.html", {
-        "request": request, 
+    return templates.TemplateResponse(request=request, name="dashboard.html", context={
         "user": user, 
         "assessment": assessment,
         "appointments": appointments,
@@ -918,7 +1015,9 @@ async def admin_dashboard(
     user_page: int = 1,
     feedback_page: int = 1,
     ticket_page: int = 1,
-    page_size: int = 20
+    page_size: int = 20,
+    user_search: str = "",
+    counsellor_search: str = ""
 ):
     try:
         current_user = get_current_user(request, db)
@@ -931,8 +1030,15 @@ async def admin_dashboard(
             return RedirectResponse(url="/dashboard?error=Admin access denied", status_code=status.HTTP_302_FOUND)
 
         # ─── Paginated Data ──────────────────────────────────────────────
-        all_users = db.query(models.User).order_by(models.User.id.desc()).offset((user_page - 1) * page_size).limit(page_size).all()
-        total_users = db.query(models.User).count()
+        user_search = user_search.strip()
+        if user_search:
+            # Search across the entire database by name or email
+            search_filter = models.User.full_name.ilike(f"%{user_search}%") | models.User.email.ilike(f"%{user_search}%")
+            all_users = db.query(models.User).filter(search_filter).order_by(models.User.id.desc()).all()
+            total_users = len(all_users)
+        else:
+            all_users = db.query(models.User).order_by(models.User.id.desc()).offset((user_page - 1) * page_size).limit(page_size).all()
+            total_users = db.query(models.User).count()
 
         all_feedback = db.query(models.Feedback).order_by(models.Feedback.timestamp.desc()).offset((feedback_page - 1) * page_size).limit(page_size).all()
         total_feedback = db.query(models.Feedback).count()
@@ -959,7 +1065,13 @@ async def admin_dashboard(
         ).group_by(models.Appointment.counsellor_id).all()
         total_map = {row.counsellor_id: row.count for row in total_sessions}
 
-        all_counsellors = db.query(models.CounsellorProfile).all()
+        counsellor_search = counsellor_search.strip()
+        if counsellor_search:
+            # Search across all counsellors by name or email
+            search_filter = models.User.full_name.ilike(f"%{counsellor_search}%") | models.User.email.ilike(f"%{counsellor_search}%")
+            all_counsellors = db.query(models.CounsellorProfile).join(models.User).filter(search_filter).all()
+        else:
+            all_counsellors = db.query(models.CounsellorProfile).all()
         for cp in all_counsellors:
             cp.session_count = completed_map.get(cp.user_id, 0)
             cp.total_sessions = total_map.get(cp.user_id, 0)
@@ -990,8 +1102,7 @@ async def admin_dashboard(
         # Fetch Moderation Flags (Limited for performance)
         moderation_flags = db.query(models.ModerationFlag).order_by(models.ModerationFlag.timestamp.desc()).limit(50).all()
 
-        return templates.TemplateResponse("admin_dashboard.html", {
-            "request": request, 
+        return templates.TemplateResponse(request=request, name="admin_dashboard.html", context={
             "user": current_user, 
             "users": all_users,
             "total_users": total_users,
@@ -1012,7 +1123,9 @@ async def admin_dashboard(
             "pending_transfers": pending_transfers,
             "failed_transfers": failed_transfers,
             "captured_payments_count": captured_payments_count,
-            "moderation_flags": moderation_flags
+            "moderation_flags": moderation_flags,
+            "user_search": user_search,
+            "counsellor_search": counsellor_search
         })
     except Exception as e:
         import traceback
@@ -1101,42 +1214,53 @@ async def accept_tnc(request: Request, db: Session = Depends(get_db)):
 @app.post("/counsellor/update")
 async def counsellor_update(
     request: Request,
-    fee: float = Form(0.0),
-    availability_text: str = Form(""),
-    bank_name: str = Form(""),
-    account_num: str = Form(""),
-    ifsc_code: str = Form(""),
-    upi_id: str = Form(""),
+    fee: str = Form(None),
+    availability_text: str = Form(None),
+    bank_name: str = Form(None),
+    account_num: str = Form(None),
+    ifsc_code: str = Form(None),
+    upi_id: str = Form(None),
     db: Session = Depends(get_db)
 ):
     user = get_current_user(request, db)
     if not user or user.role != "counsellor":
-         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+         return RedirectResponse(url="/dashboard", status_code=status.HTTP_302_FOUND)
     
-    account_data = {
-        "bank_name": bank_name,
-        "account_num": account_num,
-        "ifsc": ifsc_code,
-        "upi": upi_id
-    }
+    try:
+        profile = db.query(models.CounsellorProfile).filter(models.CounsellorProfile.user_id == user.id).first()
+        if not profile:
+            profile = models.CounsellorProfile(user_id=user.id)
+            db.add(profile)
+            db.flush()
+        
+        # Update Basic Info (only if provided and not empty)
+        if fee is not None and fee.strip() != "" and not profile.fee_locked:
+            try:
+                profile.fee = float(fee)
+            except ValueError:
+                pass # Ignore invalid fee format
+        
+        if availability_text is not None:
+            profile.availability = {"text": availability_text}
+        
+        # Update Account Details (merge with existing)
+        # Check if any account-related fields were sent in the form
+        if any(x is not None for x in [bank_name, account_num, ifsc_code, upi_id]):
+            account_data = profile.account_details or {}
+            # We treat empty string as clearing the value or just setting it to empty
+            if bank_name is not None: account_data["bank_name"] = bank_name
+            if account_num is not None: account_data["account_num"] = account_num
+            if ifsc_code is not None: account_data["ifsc"] = ifsc_code
+            if upi_id is not None: account_data["upi"] = upi_id
+            profile.account_details = account_data
+        
+        db.commit()
+    except Exception as e:
+        print(f"Error updating counsellor profile: {e}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Error updating profile. Please ensure all data is correct.")
     
-    profile = db.query(models.CounsellorProfile).filter(models.CounsellorProfile.user_id == user.id).first()
-    if profile:
-        if not profile.fee_locked:
-            profile.fee = fee
-        profile.availability = {"text": availability_text}
-        profile.account_details = account_data
-    else:
-        profile = models.CounsellorProfile(
-            user_id=user.id, 
-            fee=fee, 
-            availability={"text": availability_text},
-            account_details=account_data
-        )
-        db.add(profile)
-    
-    db.commit()
-    return RedirectResponse(url="/dashboard", status_code=status.HTTP_302_FOUND)
+    return RedirectResponse(url="/dashboard?msg=Profile updated successfully", status_code=status.HTTP_302_FOUND)
 
 @app.post("/profile/upload-photo")
 async def upload_profile_photo(
@@ -1175,48 +1299,52 @@ async def upload_profile_photo(
 @app.post("/counsellor/upload-certificates")
 async def upload_certificates(
     request: Request,
-    experience: str = Form(...),
-    files: List[UploadFile] = File(...),
+    experience: str = Form(None),
+    files: List[UploadFile] = File(None),
     db: Session = Depends(get_db)
 ):
     user = get_current_user(request, db)
     if not user or user.role != "counsellor":
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
     
-    profile = db.query(models.CounsellorProfile).filter(models.CounsellorProfile.user_id == user.id).first()
-    if not profile:
-        profile = models.CounsellorProfile(user_id=user.id)
-        db.add(profile)
-    
-    cert_paths = profile.certificates if profile.certificates else []
-    
-    # Ensure directory exists
-    upload_dir = os.path.join(BASE_DIR, "static", "uploads", "certificates")
     try:
+        profile = db.query(models.CounsellorProfile).filter(models.CounsellorProfile.user_id == user.id).first()
+        if not profile:
+            profile = models.CounsellorProfile(user_id=user.id)
+            db.add(profile)
+            db.flush()
+        
+        existing_certs = profile.certificates if profile.certificates else []
+        new_certs = list(existing_certs)
+        
+        # Ensure directory exists
+        upload_dir = os.path.join(BASE_DIR, "static", "uploads", "certificates")
         os.makedirs(upload_dir, exist_ok=True)
 
-        for file in files:
-            if file.filename:
-                file_extension = os.path.splitext(file.filename)[1]
-                filename = f"cert_{user.id}_{uuid.uuid4().hex}{file_extension}"
-                file_path = os.path.join(upload_dir, filename)
-                
-                contents = await file.read()
-                with open(file_path, "wb") as buffer:
-                    buffer.write(contents)
-                
-                cert_paths.append(f"/static/uploads/certificates/{filename}")
+        if files:
+            for file in files:
+                if file.filename and file.filename.strip() != "":
+                    file_extension = os.path.splitext(file.filename)[1]
+                    filename = f"cert_{user.id}_{uuid.uuid4().hex}{file_extension}"
+                    file_path = os.path.join(upload_dir, filename)
+                    
+                    contents = await file.read()
+                    with open(file_path, "wb") as buffer:
+                        buffer.write(contents)
+                    
+                    new_certs.append(f"/static/uploads/certificates/{filename}")
         
-        # Ensure SQLAlchemy detects the list change
-        profile.certificates = list(cert_paths)
-        profile.experience = experience
+        profile.certificates = new_certs
+        if experience:
+            profile.experience = experience
         profile.verification_status = "pending"
         db.commit()
     except Exception as e:
         print(f"CERTIFICATE UPLOAD ERROR: {e}")
-        return RedirectResponse(url="/dashboard?error=Certificate upload failed", status_code=status.HTTP_302_FOUND)
+        db.rollback()
+        return RedirectResponse(url="/dashboard?error=Upload failed. Please try again.", status_code=status.HTTP_302_FOUND)
     
-    return RedirectResponse(url="/dashboard", status_code=status.HTTP_302_FOUND)
+    return RedirectResponse(url="/dashboard?msg=Certificates uploaded successfully", status_code=status.HTTP_302_FOUND)
 
 @app.post("/admin/verify-counsellor/{counsellor_id}")
 async def verify_counsellor(
@@ -1232,11 +1360,25 @@ async def verify_counsellor(
         if not admin_email or current_user.email != admin_email:
             return RedirectResponse(url="/dashboard", status_code=status.HTTP_302_FOUND)
             
-    profile = db.query(models.CounsellorProfile).filter(models.CounsellorProfile.user_id == counsellor_id).first()
-    if profile:
-        profile.verification_status = verification_status
-        profile.is_verified = (verification_status == "approved")
-        db.commit()
+    try:
+        profile = db.query(models.CounsellorProfile).filter(models.CounsellorProfile.user_id == counsellor_id).first()
+        if profile:
+            profile.verification_status = verification_status
+            profile.is_verified = (verification_status == "approved")
+            
+            # Send Notification to Counsellor
+            msg = "Congratulations! Your profile has been verified successfully. You can now start accepting booking requests." if verification_status == "approved" else "Your profile verification was not approved. Please ensure all your documents are correct and try again."
+            
+            notif = models.Notification(
+                user_id=counsellor_id,
+                type="system",
+                message=msg
+            )
+            db.add(notif)
+            db.commit()
+    except Exception as e:
+        print(f"Admin Verification Error: {e}")
+        db.rollback()
     
     return RedirectResponse(url="/admin", status_code=status.HTTP_302_FOUND)
 
@@ -1416,7 +1558,7 @@ async def list_counsellors(request: Request, db: Session = Depends(get_db)):
         models.CounsellorProfile.is_blocked == False
     ).all()
     
-    return templates.TemplateResponse("counsellors_list.html", {"request": request, "user": user, "counsellors": counsellors})
+    return templates.TemplateResponse(request=request, name="counsellors_list.html", context={"user": user, "counsellors": counsellors})
 
 import datetime
 import uuid
@@ -1514,10 +1656,23 @@ async def book_free_counsellor(counsellor_id: int, request: Request, background_
 
     print(f"DEBUG: Free Appointment created successfully for student {user.id} and counsellor {counsellor_id}")
     
-    return templates.TemplateResponse("appointment_success.html", {"request": request, "user": user, "appointment": appointment})
+    return templates.TemplateResponse(request=request, name="appointment_success.html", context={"user": user, "appointment": appointment})
 
 @app.get("/join_meeting/{appointment_id}")
 async def join_meeting(appointment_id: int, request: Request, db: Session = Depends(get_db)):
+    user = get_current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+    
+    appointment = db.query(models.Appointment).filter(models.Appointment.id == appointment_id).first()
+    if not appointment:
+        raise HTTPException(status_code=404, detail="Appointment not found")
+    
+    return RedirectResponse(url=f"/meeting/{appointment_id}")
+
+@app.get("/meeting/{appointment_id}", response_class=HTMLResponse)
+async def meeting_page(appointment_id: int, request: Request, db: Session = Depends(get_db)):
     user = get_current_user(request, db)
     if not user:
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
@@ -1526,13 +1681,57 @@ async def join_meeting(appointment_id: int, request: Request, db: Session = Depe
     if not appointment:
         raise HTTPException(status_code=404, detail="Appointment not found")
     
-    # If the current user is the counsellor, mark as joined
+    other_user_id = appointment.student_id if user.id == appointment.counsellor_id else appointment.counsellor_id
+    other_user = db.query(models.User).filter(models.User.id == other_user_id).first()
+    
+    return templates.TemplateResponse(request=request, name="meeting.html", context={
+        "user": user, 
+        "appointment": appointment,
+        "other_user": other_user
+    })
+
+@app.post("/appointment/track-join/{appointment_id}")
+async def track_join(appointment_id: int, request: Request, db: Session = Depends(get_db)):
+    user = get_current_user(request, db)
+    if not user:
+        raise HTTPException(status_code=401)
+    
+    appointment = db.query(models.Appointment).filter(models.Appointment.id == appointment_id).first()
+    if not appointment:
+        raise HTTPException(status_code=404)
+    
+    now = datetime.datetime.now()
     if user.id == appointment.counsellor_id:
         appointment.counsellor_joined = True
-        appointment.joined_at = datetime.datetime.now()
-        db.commit()
+        appointment.joined_at = now
+    elif user.id == appointment.student_id:
+        appointment.student_joined = True
+        appointment.student_joined_at = now
     
-    return RedirectResponse(url=appointment.meeting_link)
+    db.commit()
+    return {"status": "ok"}
+
+@app.post("/appointment/heartbeat/{appointment_id}")
+async def appointment_heartbeat(appointment_id: int, request: Request, db: Session = Depends(get_db)):
+    user = get_current_user(request, db)
+    if not user:
+        raise HTTPException(status_code=401)
+    
+    appointment = db.query(models.Appointment).filter(models.Appointment.id == appointment_id).first()
+    if not appointment:
+        raise HTTPException(status_code=404)
+    
+    if appointment.status == "scheduled":
+        # Increment overlap counter (called every minute by frontend if both present)
+        appointment.actual_overlap_minutes += 1
+        
+        # Mark as completed if overlap >= 5 minutes
+        if appointment.actual_overlap_minutes >= 5:
+            appointment.status = "completed"
+            
+        db.commit()
+        
+    return {"status": appointment.status, "overlap_mins": appointment.actual_overlap_minutes}
 
 @app.get("/appointment_status/{appointment_id}")
 async def appointment_status(appointment_id: int, db: Session = Depends(get_db)):
@@ -1603,6 +1802,59 @@ async def complete_appointment(appointment_id: int, request: Request, db: Sessio
     db.commit()
     
     return RedirectResponse(url="/dashboard", status_code=status.HTTP_302_FOUND)
+
+@app.post("/appointment/rate/{appointment_id}")
+async def rate_appointment(appointment_id: int, request: Request, rating: int = Form(...), review: str = Form(None), db: Session = Depends(get_db)):
+    user = get_current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+    
+    # Verify appointment student
+    appointment = db.query(models.Appointment).filter(
+        models.Appointment.id == appointment_id, 
+        models.Appointment.student_id == user.id
+    ).first()
+    
+    if not appointment:
+        raise HTTPException(status_code=404, detail="Appointment not found or not yours")
+    
+    if appointment.status != "completed":
+        raise HTTPException(status_code=400, detail="Only completed appointments can be rated")
+    
+    # Check for existing rating
+    existing = db.query(models.CounselorRating).filter(models.CounselorRating.appointment_id == appointment_id).first()
+    if existing:
+        return RedirectResponse(url="/dashboard?error=Session already rated", status_code=status.HTTP_302_FOUND)
+    
+    try:
+        # Create rating record
+        new_rating = models.CounselorRating(
+            appointment_id=appointment_id,
+            counsellor_id=appointment.counsellor_id,
+            student_id=user.id,
+            rating=rating,
+            review=review
+        )
+        db.add(new_rating)
+        
+        # Update Counselor profile stats
+        profile = db.query(models.CounsellorProfile).filter(models.CounsellorProfile.user_id == appointment.counsellor_id).first()
+        if profile:
+            # Handle potential None values safely
+            avg = profile.average_rating if profile.average_rating is not None else 5.0
+            count = profile.rating_count if profile.rating_count is not None else 0
+            
+            old_total = avg * count
+            profile.rating_count = count + 1
+            profile.average_rating = (old_total + rating) / profile.rating_count
+        
+        db.commit()
+    except Exception as e:
+        print(f"Rating error: {e}")
+        db.rollback()
+        return RedirectResponse(url="/dashboard?error=Failed to submit rating. Please try again.", status_code=status.HTTP_302_FOUND)
+        
+    return RedirectResponse(url="/dashboard?msg=Thank you for your feedback!", status_code=status.HTTP_302_FOUND)
 
 @app.post("/admin/tickets/{ticket_id}/reply")
 async def reply_ticket(ticket_id: int, request: Request, reply_content: str = Form(None), db: Session = Depends(get_db)):
@@ -1687,40 +1939,37 @@ async def verify_payment(request: Request, background_tasks: BackgroundTasks, db
     else:
         appt_time = datetime.datetime.now() + datetime.timedelta(days=1)
         
-    appointment = models.Appointment(
-        student_id=user.id,
-        counsellor_id=counsellor_id,
-        appointment_time=appt_time,
-        status="requested", # Default to requested
-        payment_status="authorized", # Funds are authorized but not captured
-        meeting_link=meeting_link,
-        razorpay_order_id=razorpay_order_id,
-        razorpay_payment_id=razorpay_payment_id
-    )
-    db.add(appointment)
-    db.commit()
-    db.refresh(appointment)
-
-    # ── Record Payment + Transfer for admin split tracking ─────────────────
+    # ── Record Payment + Transfer and Appointment in one transaction ─────────
     try:
-        # Get the counsellor's fee for accurate split calculation
+        # 1. Create Appointment
+        appointment = models.Appointment(
+            student_id=user.id,
+            counsellor_id=counsellor_id,
+            appointment_time=appt_time,
+            status="requested", 
+            payment_status="authorized", 
+            meeting_link=meeting_link,
+            razorpay_order_id=razorpay_order_id,
+            razorpay_payment_id=razorpay_payment_id
+        )
+        db.add(appointment)
+        db.flush() # Get appointment.id
+
+        # 2. Update/Create Payment record
         counsellor_profile = db.query(models.CounsellorProfile).filter(
             models.CounsellorProfile.user_id == counsellor_id
         ).first()
         fee_amount = counsellor_profile.fee if counsellor_profile else 0.0
 
-        # Find or create the Payment record
         payment_record = db.query(models.Payment).filter(
             models.Payment.razorpay_order_id == razorpay_order_id
         ).first()
 
         if payment_record:
-            # Update existing record (created during order creation)
             payment_record.razorpay_payment_id = razorpay_payment_id
             payment_record.status = "captured"
             payment_record.session_id = appointment.id
         else:
-            # Create new record (fallback)
             payment_record = models.Payment(
                 session_id=appointment.id,
                 razorpay_order_id=razorpay_order_id,
@@ -1729,48 +1978,44 @@ async def verify_payment(request: Request, background_tasks: BackgroundTasks, db
                 status="captured"
             )
             db.add(payment_record)
-            db.commit()
-            db.refresh(payment_record)
+        
+        db.flush() # Get payment_record.id
 
-        # Check for Founding Counsellor (2 months no commission)
+        # 3. Create Transfer record (Commission logic)
         is_founding_free = False
         if counsellor_profile and counsellor_profile.is_founding_counsellor:
             if counsellor_profile.commission_free_until and counsellor_profile.commission_free_until > datetime.datetime.now():
                 is_founding_free = True
 
-        # Create Transfer record (70/30 split OR 100% if founding free)
         if is_founding_free:
             counselor_share = round(fee_amount, 2)
-            commission_note = "Founding Counsellor (0% platform fee)"
         else:
             counselor_share = round(fee_amount * 0.70, 2)
-            commission_note = "Standard (30% platform fee)"
 
         transfer_record = models.Transfer(
             payment_id=payment_record.id,
             counsellor_id=counsellor_id,
             amount=counselor_share,
-            status="pending"  # Will become 'processed' when manually/auto transferred
+            status="pending"
         )
         db.add(transfer_record)
-        db.commit()
 
-        print(f"DEBUG: Split recorded ({commission_note}) — Total: ₹{fee_amount}, Counselor: ₹{counselor_share}, Platform: ₹{round(fee_amount - counselor_share, 2)}")
-    except Exception as pe:
-        print(f"DEBUG: Split record creation error: {pe}")
-    
-    # Send Notification to Counsellor
-    counsellor_user = db.query(models.User).filter(models.User.id == counsellor_id).first()
-    if counsellor_user:
+        # 4. Create Notification
         notif = models.Notification(
             user_id=counsellor_id,
             type="booking_request",
             message=f"New booking request from {user.full_name} for {appt_time.strftime('%b %d, %I:%M %p')}."
         )
         db.add(notif)
-        db.commit()
 
-    return templates.TemplateResponse("appointment_success.html", {"request": request, "user": user, "appointment": appointment, "is_request": True})
+        # 5. Final Commit
+        db.commit()
+    except Exception as e:
+        print(f"Payment verification DB error: {e}")
+        db.rollback()
+        return RedirectResponse(url="/counsellors?error=Database error during payment processing", status_code=status.HTTP_302_FOUND)
+
+    return templates.TemplateResponse(request=request, name="appointment_success.html", context={"user": user, "appointment": appointment, "is_request": True})
 
 @app.post("/appointment/accept/{appt_id}")
 async def accept_appointment(appt_id: int, request: Request, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
@@ -1902,7 +2147,7 @@ async def delete_roadmap(path_id: int, request: Request, db: Session = Depends(g
 
     print(f"DEBUG: Appointment created successfully for student {user.id} and counsellor {counsellor_id}")
     
-    return templates.TemplateResponse("appointment_success.html", {"request": request, "user": user, "appointment": appointment})
+    return templates.TemplateResponse(request=request, name="appointment_success.html", context={"user": user, "appointment": appointment})
 
 # --- Phase 3 Routes ---
 
@@ -1929,8 +2174,7 @@ async def assessment_phase3(request: Request, db: Session = Depends(get_db)):
         # Be safe and redirect w/ maybe a flash message (not impl yet)
         return RedirectResponse(url="/assessment/result", status_code=status.HTTP_302_FOUND)
     
-    return templates.TemplateResponse("assessment_phase3.html", {
-        "request": request, 
+    return templates.TemplateResponse(request=request, name="assessment_phase3.html", context={
         "user": user, 
         "scenarios": scenarios,
         "category_name": category
@@ -2150,7 +2394,7 @@ async def assessment_final(request: Request, db: Session = Depends(get_db)):
         context["mode"] = "10th"
         context["sections"] = all_questions
 
-    return templates.TemplateResponse("assessment_final.html", context)
+    return templates.TemplateResponse(request=request, name="assessment_final.html", context=context)
 
 @app.post("/assessment/final/submit")
 async def assessment_final_submit(request: Request, db: Session = Depends(get_db)):
@@ -2629,7 +2873,7 @@ async def chatbot_page(request: Request, db: Session = Depends(get_db)):
     # Fetch History
     history = db.query(models.ChatMessage).filter(models.ChatMessage.user_id == user.id).order_by(models.ChatMessage.timestamp).all()
     
-    return templates.TemplateResponse("chatbot.html", {"request": request, "user": user, "history": history})
+    return templates.TemplateResponse(request=request, name="chatbot.html", context={"user": user, "history": history})
 
 @app.post("/assessment/resolve-voice")
 async def resolve_voice(req: ResolveVoiceRequest):
@@ -2801,7 +3045,7 @@ async def feedback_page(request: Request, db: Session = Depends(get_db)):
     user = get_current_user(request, db)
     if not user:
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
-    return templates.TemplateResponse("feedback.html", {"request": request, "user": user})
+    return templates.TemplateResponse(request=request, name="feedback.html", context={"user": user})
 
 @app.post("/feedback")
 async def submit_feedback(
@@ -2832,7 +3076,7 @@ async def ticket_page(request: Request, db: Session = Depends(get_db)):
     if not user:
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
     tickets = db.query(models.Ticket).filter(models.Ticket.user_id == user.id).order_by(models.Ticket.timestamp.desc()).all()
-    return templates.TemplateResponse("ticket.html", {"request": request, "user": user, "tickets": tickets})
+    return templates.TemplateResponse(request=request, name="ticket.html", context={"user": user, "tickets": tickets})
 
 @app.post("/ticket/submit")
 async def submit_ticket(
@@ -3057,7 +3301,7 @@ async def view_roadmaps(request: Request, db: Session = Depends(get_db)):
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
     
     paths = db.query(models.CareerPath).filter(models.CareerPath.user_id == user.id).all()
-    return templates.TemplateResponse("career_roadmaps.html", {"request": request, "user": user, "paths": paths})
+    return templates.TemplateResponse(request=request, name="career_roadmaps.html", context={"user": user, "paths": paths})
 
 @app.get("/career/roadmap/{path_id}", response_class=HTMLResponse)
 async def view_roadmap_detail(path_id: int, request: Request, db: Session = Depends(get_db)):
@@ -3072,8 +3316,7 @@ async def view_roadmap_detail(path_id: int, request: Request, db: Session = Depe
     assessment = db.query(models.AssessmentResult).filter(models.AssessmentResult.user_id == user.id).first()
     appointments = db.query(models.Appointment).filter(models.Appointment.student_id == user.id).all()
         
-    return templates.TemplateResponse("career_roadmap_v2.html", {
-        "request": request, 
+    return templates.TemplateResponse(request=request, name="career_roadmap_v2.html", context={
         "user": user, 
         "path": path,
         "assessment": assessment,
@@ -3105,8 +3348,7 @@ async def view_roadmap_resources(path_id: int, request: Request, db: Session = D
     # NEW: Fetch AI recommendations
     ai_recommendations = await ResourceAggregator.get_ai_recommendations(career_title, generate_content_with_fallback)
     
-    return templates.TemplateResponse("resources_dashboard.html", {
-        "request": request, 
+    return templates.TemplateResponse(request=request, name="resources_dashboard.html", context={
         "user": user, 
         "path": path,
         "resources": resources,
@@ -3205,7 +3447,7 @@ async def view_college_recommendations(request: Request, db: Session = Depends(g
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
 
     recs = db.query(models.CollegeRecommendation).filter(models.CollegeRecommendation.user_id == user.id).order_by(models.CollegeRecommendation.created_at.desc()).all()
-    return templates.TemplateResponse("college_recommendations.html", {"request": request, "user": user, "recs": recs})
+    return templates.TemplateResponse(request=request, name="college_recommendations.html", context={"user": user, "recs": recs})
 
 
 @app.get("/career/colleges/{rec_id}", response_class=HTMLResponse)
@@ -3221,7 +3463,7 @@ async def view_college_detail(rec_id: int, request: Request, db: Session = Depen
     if not rec:
         raise HTTPException(status_code=404, detail="College recommendation not found")
 
-    return templates.TemplateResponse("college_detail.html", {"request": request, "user": user, "rec": rec})
+    return templates.TemplateResponse(request=request, name="college_detail.html", context={"user": user, "rec": rec})
 
 
 # ─── Student Community & Connection Routes ────────────────────────────────────
@@ -3289,8 +3531,7 @@ async def community_page(request: Request, db: Session = Depends(get_db)):
         models.StudentConnection.status == "pending"
     ).count()
 
-    return templates.TemplateResponse("community.html", {
-        "request": request,
+    return templates.TemplateResponse(request=request, name="community.html", context={
         "user": user,
         "my_archetype": my_archetype,
         "similar_students": similar_students,
@@ -3347,8 +3588,7 @@ async def student_profile(user_id: int, request: Request, db: Session = Depends(
 
     is_own_profile = (user.id == user_id)
 
-    return templates.TemplateResponse("student_profile.html", {
-        "request": request,
+    return templates.TemplateResponse(request=request, name="student_profile.html", context={
         "user": user,
         "student": student,
         "assessment": assessment,
@@ -3571,8 +3811,7 @@ async def my_connections_page(request: Request, db: Session = Depends(get_db)):
                 "conn_id": conn.id
             })
 
-    return templates.TemplateResponse("my_connections.html", {
-        "request": request,
+    return templates.TemplateResponse(request=request, name="my_connections.html", context={
         "user": user,
         "connected_users": connected_users,
         "pending_requests": pending_requests,
@@ -3614,8 +3853,7 @@ async def student_chat_page(conn_id: int, request: Request, db: Session = Depend
     ).update({models.StudentMessage.is_read: True})
     db.commit()
 
-    return templates.TemplateResponse("student_chat.html", {
-        "request": request,
+    return templates.TemplateResponse(request=request, name="student_chat.html", context={
         "user": user,
         "other_user": other_user,
         "messages": messages,
@@ -3753,3 +3991,23 @@ if __name__ == "__main__":
     import uvicorn
     uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
 
+
+@app.get("/privacy", response_class=HTMLResponse)
+async def privacy_page(request: Request, db: Session = Depends(get_db)):
+    user = get_current_user(request, db)
+    return templates.TemplateResponse(request=request, name="privacy.html", context={"user": user})
+
+@app.get("/terms", response_class=HTMLResponse)
+async def terms_page(request: Request, db: Session = Depends(get_db)):
+    user = get_current_user(request, db)
+    return templates.TemplateResponse(request=request, name="terms.html", context={"user": user})
+
+@app.get("/debug/migrate")
+async def debug_migrate(request: Request, db: Session = Depends(get_db)):
+    """Manually trigger migrations and return status."""
+    try:
+        run_migrations()
+        return {"status": "success", "message": "Migrations triggered. Check console/logs for details."}
+    except Exception as e:
+        import traceback
+        return {"status": "error", "message": str(e), "traceback": traceback.format_exc()}
