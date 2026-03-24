@@ -1015,7 +1015,8 @@ async def admin_dashboard(
     user_page: int = 1,
     feedback_page: int = 1,
     ticket_page: int = 1,
-    page_size: int = 20
+    page_size: int = 20,
+    user_search: str = ""
 ):
     try:
         current_user = get_current_user(request, db)
@@ -1028,8 +1029,15 @@ async def admin_dashboard(
             return RedirectResponse(url="/dashboard?error=Admin access denied", status_code=status.HTTP_302_FOUND)
 
         # ─── Paginated Data ──────────────────────────────────────────────
-        all_users = db.query(models.User).order_by(models.User.id.desc()).offset((user_page - 1) * page_size).limit(page_size).all()
-        total_users = db.query(models.User).count()
+        user_search = user_search.strip()
+        if user_search:
+            # Search across the entire database by name or email
+            search_filter = models.User.full_name.ilike(f"%{user_search}%") | models.User.email.ilike(f"%{user_search}%")
+            all_users = db.query(models.User).filter(search_filter).order_by(models.User.id.desc()).all()
+            total_users = len(all_users)
+        else:
+            all_users = db.query(models.User).order_by(models.User.id.desc()).offset((user_page - 1) * page_size).limit(page_size).all()
+            total_users = db.query(models.User).count()
 
         all_feedback = db.query(models.Feedback).order_by(models.Feedback.timestamp.desc()).offset((feedback_page - 1) * page_size).limit(page_size).all()
         total_feedback = db.query(models.Feedback).count()
@@ -1108,7 +1116,8 @@ async def admin_dashboard(
             "pending_transfers": pending_transfers,
             "failed_transfers": failed_transfers,
             "captured_payments_count": captured_payments_count,
-            "moderation_flags": moderation_flags
+            "moderation_flags": moderation_flags,
+            "user_search": user_search
         })
     except Exception as e:
         import traceback

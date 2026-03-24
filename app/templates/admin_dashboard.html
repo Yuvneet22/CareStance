@@ -636,16 +636,29 @@
 
         <div class="flex flex-col">
             <!-- Search Bar -->
-            <div class="mb-4 flex items-center gap-3">
+            <form action="/admin" method="GET" class="mb-4 flex items-center gap-3">
+                <input type="hidden" name="feedback_page" value="{{ feedback_page }}">
+                <input type="hidden" name="ticket_page" value="{{ ticket_page }}">
                 <div class="relative flex-1 max-w-md">
                     <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
-                    <input type="text" id="userSearchInput" placeholder="Search by name, email, class, or phase..."
-                        class="w-full pl-11 pr-4 py-3 rounded-2xl border border-slate-200 bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all text-sm font-medium text-slate-700 shadow-sm"
-                        oninput="filterUserTable()">
+                    <input type="text" name="user_search" placeholder="Search by name or email across all users..."
+                        value="{{ user_search or '' }}"
+                        class="w-full pl-11 pr-4 py-3 rounded-2xl border border-slate-200 bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all text-sm font-medium text-slate-700 shadow-sm">
                 </div>
-                <span id="userSearchCount"
-                    class="text-[10px] font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap"></span>
-            </div>
+                <button type="submit"
+                    class="px-5 py-3 bg-indigo-600 text-white rounded-2xl font-bold text-sm hover:bg-indigo-700 transition-all shadow-md">
+                    Search
+                </button>
+                {% if user_search %}
+                <a href="/admin?feedback_page={{ feedback_page }}&ticket_page={{ ticket_page }}"
+                    class="px-4 py-3 bg-slate-100 text-slate-600 rounded-2xl font-bold text-sm hover:bg-slate-200 transition-all border border-slate-200">
+                    Clear
+                </a>
+                <span class="text-[10px] font-bold text-indigo-600 uppercase tracking-widest whitespace-nowrap">
+                    {{ total_users }} result{{ 's' if total_users != 1 }} for "{{ user_search }}"
+                </span>
+                {% endif %}
+            </form>
             <div class="-my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
                 <div class="py-2 align-middle inline-block min-w-full sm:px-6 lg:px-8">
                     <div class="shadow-xl overflow-hidden border-b border-slate-200 sm:rounded-2xl">
@@ -1121,31 +1134,4 @@
 </div>
 </div>
 
-<script>
-    function filterUserTable() {
-        const query = document.getElementById('userSearchInput').value.toLowerCase().trim();
-        const table = document.getElementById('userDetailsTable');
-        const tbody = table.querySelector('tbody');
-        const rows = tbody.querySelectorAll('tr');
-        let visibleCount = 0;
-        const totalCount = rows.length;
-
-        rows.forEach(row => {
-            const text = row.textContent.toLowerCase();
-            if (!query || text.includes(query)) {
-                row.style.display = '';
-                visibleCount++;
-            } else {
-                row.style.display = 'none';
-            }
-        });
-
-        const countEl = document.getElementById('userSearchCount');
-        if (query) {
-            countEl.textContent = visibleCount + ' of ' + totalCount + ' users matched';
-        } else {
-            countEl.textContent = '';
-        }
-    }
-</script>
 {% endblock %}
