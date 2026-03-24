@@ -1016,7 +1016,8 @@ async def admin_dashboard(
     feedback_page: int = 1,
     ticket_page: int = 1,
     page_size: int = 20,
-    user_search: str = ""
+    user_search: str = "",
+    counsellor_search: str = ""
 ):
     try:
         current_user = get_current_user(request, db)
@@ -1064,7 +1065,13 @@ async def admin_dashboard(
         ).group_by(models.Appointment.counsellor_id).all()
         total_map = {row.counsellor_id: row.count for row in total_sessions}
 
-        all_counsellors = db.query(models.CounsellorProfile).all()
+        counsellor_search = counsellor_search.strip()
+        if counsellor_search:
+            # Search across all counsellors by name or email
+            search_filter = models.User.full_name.ilike(f"%{counsellor_search}%") | models.User.email.ilike(f"%{counsellor_search}%")
+            all_counsellors = db.query(models.CounsellorProfile).join(models.User).filter(search_filter).all()
+        else:
+            all_counsellors = db.query(models.CounsellorProfile).all()
         for cp in all_counsellors:
             cp.session_count = completed_map.get(cp.user_id, 0)
             cp.total_sessions = total_map.get(cp.user_id, 0)
@@ -1117,7 +1124,8 @@ async def admin_dashboard(
             "failed_transfers": failed_transfers,
             "captured_payments_count": captured_payments_count,
             "moderation_flags": moderation_flags,
-            "user_search": user_search
+            "user_search": user_search,
+            "counsellor_search": counsellor_search
         })
     except Exception as e:
         import traceback

@@ -134,15 +134,46 @@
 
         <!-- Life Coach Management Section -->
         <div class="mb-12">
-            <h2 class="text-2xl font-extrabold text-slate-800 mb-6 flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-violet-600" fill="none" viewBox="0 0 24 24"
-                    stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                </svg>
-                Life Coach Management
-                <span class="text-sm font-medium text-slate-400 ml-2">({{ all_counsellors|length }} total)</span>
-            </h2>
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-2xl font-extrabold text-slate-800 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-violet-600" fill="none"
+                        viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
+                    Life Coach Management
+                    <span class="text-sm font-medium text-slate-400 ml-2">({{ all_counsellors|length }} total)</span>
+                </h2>
+            </div>
+
+            <!-- Life Coach Search Bar -->
+            <form action="/admin" method="GET" class="mb-6 flex items-center gap-3">
+                <input type="hidden" name="user_page" value="{{ user_page }}">
+                <input type="hidden" name="feedback_page" value="{{ feedback_page }}">
+                <input type="hidden" name="ticket_page" value="{{ ticket_page }}">
+                <input type="hidden" name="user_search" value="{{ user_search or '' }}">
+                <div class="relative flex-1 max-w-md">
+                    <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                    <input type="text" name="counsellor_search"
+                        placeholder="Search by name or email across all coaches..."
+                        value="{{ counsellor_search or '' }}"
+                        class="w-full pl-11 pr-4 py-3 rounded-2xl border border-slate-200 bg-white focus:ring-4 focus:ring-violet-500/10 focus:border-violet-500 outline-none transition-all text-sm font-medium text-slate-700 shadow-sm">
+                </div>
+                <button type="submit"
+                    class="px-5 py-3 bg-violet-600 text-white rounded-2xl font-bold text-sm hover:bg-violet-700 transition-all shadow-md">
+                    Search
+                </button>
+                {% if counsellor_search %}
+                <a href="/admin?user_page={{ user_page }}&feedback_page={{ feedback_page }}&ticket_page={{ ticket_page }}&user_search={{ user_search or '' }}"
+                    class="px-4 py-3 bg-slate-100 text-slate-600 rounded-2xl font-bold text-sm hover:bg-slate-200 transition-all border border-slate-200">
+                    Clear
+                </a>
+                <span class="text-[10px] font-bold text-violet-600 uppercase tracking-widest whitespace-nowrap">
+                    {{ all_counsellors|length }} result{{ 's' if all_counsellors|length != 1 }} for "{{
+                    counsellor_search }}"
+                </span>
+                {% endif %}
+            </form>
             <div class="shadow-xl overflow-hidden border border-slate-200 sm:rounded-2xl">
                 <div class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-slate-200">
@@ -639,6 +670,7 @@
             <form action="/admin" method="GET" class="mb-4 flex items-center gap-3">
                 <input type="hidden" name="feedback_page" value="{{ feedback_page }}">
                 <input type="hidden" name="ticket_page" value="{{ ticket_page }}">
+                <input type="hidden" name="counsellor_search" value="{{ counsellor_search or '' }}">
                 <div class="relative flex-1 max-w-md">
                     <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
                     <input type="text" name="user_search" placeholder="Search by name or email across all users..."
@@ -650,7 +682,7 @@
                     Search
                 </button>
                 {% if user_search %}
-                <a href="/admin?feedback_page={{ feedback_page }}&ticket_page={{ ticket_page }}"
+                <a href="/admin?feedback_page={{ feedback_page }}&ticket_page={{ ticket_page }}&counsellor_search={{ counsellor_search or '' }}"
                     class="px-4 py-3 bg-slate-100 text-slate-600 rounded-2xl font-bold text-sm hover:bg-slate-200 transition-all border border-slate-200">
                     Clear
                 </a>
@@ -808,13 +840,13 @@
                         </span>
                         <div class="flex gap-2">
                             {% if user_page > 1 %}
-                            <a href="?user_page={{ user_page - 1 }}&feedback_page={{ feedback_page }}&ticket_page={{ ticket_page }}"
+                            <a href="?user_page={{ user_page - 1 }}&feedback_page={{ feedback_page }}&ticket_page={{ ticket_page }}&user_search={{ user_search or '' }}&counsellor_search={{ counsellor_search or '' }}"
                                 class="px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:bg-indigo-50 hover:border-indigo-200 transition-all shadow-sm">
                                 <i class="fas fa-chevron-left mr-1"></i> Previous
                             </a>
                             {% endif %}
                             {% if (user_page * page_size) < total_users %} <a
-                                href="?user_page={{ user_page + 1 }}&feedback_page={{ feedback_page }}&ticket_page={{ ticket_page }}"
+                                href="?user_page={{ user_page + 1 }}&feedback_page={{ feedback_page }}&ticket_page={{ ticket_page }}&user_search={{ user_search or '' }}&counsellor_search={{ counsellor_search or '' }}"
                                 class="px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:bg-indigo-50 hover:border-indigo-200 transition-all shadow-sm">
                                 Next <i class="fas fa-chevron-right ml-1"></i>
                                 </a>
