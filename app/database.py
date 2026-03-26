@@ -25,11 +25,24 @@ engine_args = {
     "connect_args": {"check_same_thread": False} if SQLALCHEMY_DATABASE_URL.startswith("sqlite") else {}
 }
 
+# Fix for Supabase Transaction Mode (Port 6543)
+if ":6543" in SQLALCHEMY_DATABASE_URL and "prepare_threshold" not in SQLALCHEMY_DATABASE_URL:
+    if "?" in SQLALCHEMY_DATABASE_URL:
+        SQLALCHEMY_DATABASE_URL += "&prepare_threshold=0"
+    else:
+        SQLALCHEMY_DATABASE_URL += "?prepare_threshold=0"
+
 if not SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
-    engine_args["pool_size"] = 20
-    engine_args["max_overflow"] = 40
-    engine_args["pool_timeout"] = 30
-    engine_args["pool_recycle"] = 1800
+    # On Vercel (serverless), it's best to use NullPool to avoid connection exhaustion
+    if os.getenv("VERCEL"):
+        from sqlalchemy.pool import NullPool
+        engine_args["poolclass"] = NullPool
+    else:
+        engine_args["pool_size"] = 20
+        engine_args["max_overflow"] = 40
+        engine_args["pool_timeout"] = 30
+        engine_args["pool_recycle"] = 1800
+        engine_args["pool_pre_ping"] = True
 
 engine = create_engine(SQLALCHEMY_DATABASE_URL, **engine_args)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
