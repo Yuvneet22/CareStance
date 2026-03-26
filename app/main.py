@@ -2489,16 +2489,21 @@ async def assessment_final_submit(request: Request, db: Session = Depends(get_db
                 readable_answers = []
                 
                 if mode == "10th":
-                     def get_question_text(q_id):
+                    def get_question_text(q_id):
                         for section in all_questions.values():
                             for q in section["questions"]:
-                                if q["id"] == q_id: return q["question"], q["options"]
+                                if q["id"] == q_id: 
+                                    return q["question"], q.get("options")
                         return None, None
-                     for q_id, ans_value in answers.items():
+
+                    for q_id, ans_value in answers.items():
                         q_text, options = get_question_text(q_id)
                         if q_text:
-                            selected_option = next((opt for opt in options if opt["value"] == ans_value), None)
-                            ans_text = selected_option["text"] if selected_option else "Unknown"
+                            if options:
+                                selected_option = next((opt for opt in options if opt["value"] == ans_value), None)
+                                ans_text = selected_option["text"] if selected_option else f"Value: {ans_value}"
+                            else:
+                                ans_text = ans_value # Direct text for open questions
                             readable_answers.append(f"Question: {q_text}\nSelected Answer: {ans_text}")
                 
                 elif mode == "12th":
