@@ -9,21 +9,28 @@
             <div id="progress-bar"
                 class="bg-gradient-to-r from-violet-500 via-purple-500 to-indigo-600 h-2.5 transition-all duration-700 ease-out relative"
                 style="width: 0%">
-                <div class="absolute top-0 right-0 bottom-0 w-10 bg-white/40 blur-[4px] -skew-x-12 translate-x-full animate-[shimmer_2s_infinite]"></div>
+                <div
+                    class="absolute top-0 right-0 bottom-0 w-10 bg-white/40 blur-[4px] -skew-x-12 translate-x-full animate-[shimmer_2s_infinite]">
+                </div>
             </div>
         </div>
 
-        <div class="px-6 py-6 sm:px-8 flex justify-between items-center bg-violet-50/50 border-b border-violet-100 relative">
+        <div
+            class="px-6 py-6 sm:px-8 flex justify-between items-center bg-violet-50/50 border-b border-violet-100 relative">
             <div>
                 <h3 class="text-xl leading-6 font-bold text-slate-800">Career Personality Assessment</h3>
-                <p class="mt-1 max-w-2xl text-sm text-slate-500 font-medium tracking-wide uppercase">Question <span id="current-step-text"
-                        class="text-violet-600 font-bold">1</span> of {{ questions|length }}</p>
+                <p class="mt-1 max-w-2xl text-sm text-slate-500 font-medium tracking-wide uppercase">Question <span
+                        id="current-step-text" class="text-violet-600 font-bold">1</span> of {{ questions|length }}</p>
+                <a href="/assessment/reset" onclick="return confirm('Restart assessment from scratch?')"
+                    class="text-[10px] font-bold text-rose-500 uppercase hover:underline mt-1 block">Restart
+                    Assessment</a>
             </div>
             <div class="flex space-x-2">
                 <button type="button" id="record-btn"
                     class="p-3 rounded-full bg-slate-100 text-slate-600 shadow-sm border border-slate-200 hover:bg-red-50 hover:text-red-600 transition-all transform hover:scale-105"
                     title="Record Answer">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
                     </svg>
@@ -31,14 +38,19 @@
                 <button type="button" onclick="speakCurrentQuestion()"
                     class="p-3 rounded-full bg-white text-violet-600 shadow-sm border border-slate-200 hover:bg-violet-50 hover:text-violet-700 transition-all transform hover:scale-105"
                     title="Read Aloud">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
                     </svg>
                 </button>
-                <button type="button" onclick="togglePauseVoice()" id="pause-btn" class="p-3 rounded-full bg-white text-violet-600 shadow-sm border border-slate-200 hover:bg-violet-50 hover:text-violet-700 transition-all transform hover:scale-105" title="Pause/Resume Audio">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path id="pause-icon" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <button type="button" onclick="togglePauseVoice()" id="pause-btn"
+                    class="p-3 rounded-full bg-white text-violet-600 shadow-sm border border-slate-200 hover:bg-violet-50 hover:text-violet-700 transition-all transform hover:scale-105"
+                    title="Pause/Resume Audio">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path id="pause-icon" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                 </button>
             </div>
@@ -102,16 +114,23 @@
                         below to reveal your personality archetype.</p>
                     <button type="submit" id="reveal-btn"
                         class="w-full sm:w-auto py-4 px-10 rounded-2xl shadow-xl shadow-violet-200/50 text-lg font-bold text-white bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-500 hover:via-purple-500 hover:to-indigo-500 transition-all duration-300 transform hover:scale-105 hover:-translate-y-1 ring-offset-2 focus:ring-4 focus:ring-violet-300 flex items-center justify-center mx-auto min-w-[240px] relative overflow-hidden group">
-                        <div class="absolute inset-0 bg-white/20 -skew-x-12 -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]"></div>
+                        <div
+                            class="absolute inset-0 bg-white/20 -skew-x-12 -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]">
+                        </div>
                         <span id="btn-text" class="relative z-10">Reveal My Profile</span>
                         <div id="btn-spinner" class="hidden ml-3">
-                            <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none"
+                                viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
+                                    stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor"
+                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                                </path>
                             </svg>
                         </div>
                     </button>
-                    <p id="analyzing-text" class="hidden mt-4 text-violet-600 font-bold animate-pulse">Deep AI Analysis in progress... Please wait.</p>
+                    <p id="analyzing-text" class="hidden mt-4 text-violet-600 font-bold animate-pulse">Deep AI Analysis
+                        in progress... Please wait.</p>
                 </div>
             </form>
         </div>
@@ -119,20 +138,23 @@
 </div>
 
 <!-- Floating Premium AI Buddy Orb -->
-<div id="talking-buddy" onclick="window.location.href='/chatbot'" 
+<div id="talking-buddy" onclick="window.location.href='/chatbot'"
     class="fixed top-24 right-8 z-[100] flex items-center justify-center w-20 h-20 cursor-pointer pointer-events-auto hover:scale-110 transition-transform">
     <!-- Outer Pulse Rings -->
     <div class="pulse-ring absolute inset-0 rounded-full bg-violet-400 opacity-0"></div>
     <div class="pulse-ring absolute inset-0 rounded-full bg-indigo-400 opacity-0" style="animation-delay: 0.5s"></div>
-    
+
     <!-- Inner Orb -->
-    <div class="buddy-orb relative w-14 h-14 rounded-full bg-gradient-to-br from-violet-600 to-indigo-700 shadow-[0_0_30px_rgba(139,92,246,0.6)] flex items-center justify-center border-2 border-violet-400/30 overflow-hidden">
+    <div
+        class="buddy-orb relative w-14 h-14 rounded-full bg-gradient-to-br from-violet-600 to-indigo-700 shadow-[0_0_30px_rgba(139,92,246,0.6)] flex items-center justify-center border-2 border-violet-400/30 overflow-hidden">
         <div class="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(255,255,255,0.2),transparent)]"></div>
         <span class="text-3xl z-10">🎓</span>
     </div>
 
     <!-- Status Indicator -->
-    <div id="buddy-status" class="absolute bottom-1 right-1 h-5 w-5 bg-slate-400 rounded-full border-2 border-white shadow-lg z-[110] transition-colors duration-300"></div>
+    <div id="buddy-status"
+        class="absolute bottom-1 right-1 h-5 w-5 bg-slate-400 rounded-full border-2 border-white shadow-lg z-[110] transition-colors duration-300">
+    </div>
 </div>
 
 <script>
@@ -187,9 +209,9 @@
         const voices = window.speechSynthesis.getVoices();
         // Priority: Indian English (en-IN) versions first
         return voices.find(v => v.lang === 'en-IN') ||
-               voices.find(v => v.name.includes('India') || v.name.includes('Indian')) ||
-               voices.find(v => v.lang.startsWith('en')) ||
-               voices[0];
+            voices.find(v => v.name.includes('India') || v.name.includes('Indian')) ||
+            voices.find(v => v.lang.startsWith('en')) ||
+            voices[0];
     }
 
     async function speakCurrentQuestion() {
@@ -198,29 +220,29 @@
 
         // Visual Feedback for AI Buddy
         const buddyTalkingClass = 'buddy-talking';
-        
+
         try {
             // Cancel any current browser synthesis
             window.speechSynthesis.cancel();
-            
+
             talkingBuddy.classList.add(buddyTalkingClass);
             buddyStatus.classList.remove('bg-slate-400');
             buddyStatus.classList.add('bg-emerald-500');
 
             // Try Bark AI TTS via backend
             const response = await fetch(`/api/tts?text=${encodeURIComponent(currentQuestion)}`);
-            
+
             if (response.ok && response.headers.get('Content-Type').includes('audio')) {
                 const blob = await response.blob();
                 const audioUrl = URL.createObjectURL(blob);
                 const audio = new Audio(audioUrl);
-                
+
                 audio.onended = () => {
                     talkingBuddy.classList.remove(buddyTalkingClass);
                     buddyStatus.classList.remove('bg-emerald-500');
                     buddyStatus.classList.add('bg-slate-400');
                 };
-                
+
                 audio.play();
             } else {
                 console.log("Bark AI Fallback: Using Browser TTS");
@@ -276,7 +298,7 @@
             recognition.onresult = async (event) => {
                 const transcript = event.results[0][0].transcript;
                 console.log("Recorded:", transcript);
-                
+
                 const btnText = document.getElementById('talking-buddy').querySelector('span');
                 const originalEmoji = btnText.innerText;
                 btnText.innerText = '🤔';
@@ -286,7 +308,7 @@
                     const response = await fetch('/assessment/resolve-voice', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ 
+                        body: JSON.stringify({
                             transcript: transcript,
                             options: Array.from(options).map(opt => ({
                                 value: opt.value,
@@ -294,7 +316,7 @@
                             }))
                         })
                     });
-                    
+
                     if (response.ok) {
                         const data = await response.json();
                         const targetValue = data.best_match;
@@ -304,7 +326,7 @@
                             handleSelection(radio);
                         }
                     } else {
-                         alert("I couldn't quite match that to an option. Could you try again or click your choice?");
+                        alert("I couldn't quite match that to an option. Could you try again or click your choice?");
                     }
                 } catch (err) {
                     console.error("Resolution error:", err);
@@ -335,16 +357,16 @@
 
         const form = document.getElementById('assessment-form');
         form.addEventListener('submit', () => {
-             const btn = document.getElementById('reveal-btn');
-             const btnText = document.getElementById('btn-text');
-             const spinner = document.getElementById('btn-spinner');
-             const analyzingText = document.getElementById('analyzing-text');
+            const btn = document.getElementById('reveal-btn');
+            const btnText = document.getElementById('btn-text');
+            const spinner = document.getElementById('btn-spinner');
+            const analyzingText = document.getElementById('analyzing-text');
 
-             btn.disabled = true;
-             btn.classList.add('opacity-75', 'cursor-not-allowed');
-             btnText.innerText = 'Analyzing Profile...';
-             spinner.classList.remove('hidden');
-             analyzingText.classList.remove('hidden');
+            btn.disabled = true;
+            btn.classList.add('opacity-75', 'cursor-not-allowed');
+            btnText.innerText = 'Analyzing Profile...';
+            spinner.classList.remove('hidden');
+            analyzingText.classList.remove('hidden');
         });
     });
 </script>

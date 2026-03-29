@@ -702,7 +702,7 @@ QUESTIONS = [
 
 @app.get("/assessment/start")
 async def assessment_start(request: Request, class_level: str, db: Session = Depends(get_db)):
-    """Phase 1: Class Selection"""
+    """Phase 1: Class Selection & Reset for New Attempt"""
     user = get_current_user(request, db)
     if not user:
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
@@ -710,7 +710,25 @@ async def assessment_start(request: Request, class_level: str, db: Session = Dep
     try:
         # Check/Create Result
         result = db.query(models.AssessmentResult).filter(models.AssessmentResult.user_id == user.id).first()
-        if not result:
+        
+        if result:
+            # Clear all previous progress fields to ensure "Output Changes Accordingly" on retake
+            result.phase_2_category = None
+            result.personality = None
+            result.goal_status = None
+            result.confidence = None
+            result.reasoning = None
+            result.raw_answers = None
+            result.phase3_result = None
+            result.phase3_answers = None
+            result.phase3_analysis = None
+            result.final_answers = None
+            result.stream_scores = None
+            result.recommended_stream = None
+            result.final_analysis = None
+            result.stream_pros = None
+            result.stream_cons = None
+        else:
             result = models.AssessmentResult(user_id=user.id)
             db.add(result)
         
@@ -720,11 +738,23 @@ async def assessment_start(request: Request, class_level: str, db: Session = Dep
     except Exception as e:
         print(f"Assessment start error: {e}")
         db.rollback()
-        # Fallback to landing or dashboard
         return RedirectResponse(url="/dashboard?error=Assessment+failed+to+start", status_code=status.HTTP_302_FOUND)
     
-    # Proceed to Phase 2 (Archetype)
     return RedirectResponse(url="/assessment", status_code=status.HTTP_302_FOUND)
+
+@app.get("/assessment/reset")
+async def assessment_reset(request: Request, db: Session = Depends(get_db)):
+    """Explicitly reset assessment and go to dashboard"""
+    user = get_current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+    
+    result = db.query(models.AssessmentResult).filter(models.AssessmentResult.user_id == user.id).first()
+    if result:
+        db.delete(result)
+        db.commit()
+    
+    return RedirectResponse(url="/dashboard?message=Assessment+reset+successfully", status_code=status.HTTP_302_FOUND)
 
 
 @app.get("/assessment", response_class=HTMLResponse)

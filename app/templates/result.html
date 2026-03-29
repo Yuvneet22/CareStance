@@ -713,9 +713,10 @@
                 <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
                     <p class="text-slate-500 font-medium">Need more clarity? Talk to a human expert.</p>
                     <div class="flex gap-3">
-                        <a href="/assessment"
-                            class="px-5 py-2.5 rounded-xl border border-slate-300 text-slate-600 font-bold text-sm hover:bg-white hover:text-slate-900 transition">Retake
-                            Test</a>
+                        <a href="/assessment/reset"
+                            onclick="return confirm('Are you sure you want to retake the assessment? This will clear your current results.')"
+                            class="px-5 py-2.5 rounded-xl border border-red-200 text-red-600 font-bold text-sm hover:bg-red-50 transition">Retake
+                            Assessment</a>
                         <div
                             class="px-6 py-3 bg-slate-100 text-slate-400 font-bold rounded-2xl flex items-center gap-2 cursor-not-allowed border border-slate-200">
                             <i class="fas fa-lock text-xs"></i>
