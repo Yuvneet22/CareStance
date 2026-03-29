@@ -2541,14 +2541,16 @@ async def assessment_final_submit(request: Request, db: Session = Depends(get_db
                      q_map = {q["id"]: q for q in questions_12th}
                      for q_id, ans_text in answers.items():
                          if q_id in q_map:
-                             readable_answers.append(f"Scenario: {q_map[q_id]['title']}\nInsight: {q_map[q_id]['insight']}\nUser Response: {ans_text}")
+                             q_title = q_map[q_id].get('title') or q_map[q_id].get('question')
+                             readable_answers.append(f"Scenario: {q_title}\nInsight: {q_map[q_id]['insight']}\nUser Response: {ans_text}")
 
                 elif mode == "above":
                      # Use questions_above_12th data
                      q_map = {q["id"]: q for q in questions_above_12th}
                      for q_id, ans_text in answers.items():
                          if q_id in q_map:
-                             readable_answers.append(f"Question: {q_map[q_id]['title']}\nContext: {q_map[q_id]['insight']}\nUser Response: {ans_text}")
+                             q_title = q_map[q_id].get('title') or q_map[q_id].get('question')
+                             readable_answers.append(f"Question: {q_title}\nContext: {q_map[q_id]['insight']}\nUser Response: {ans_text}")
 
                 answers_summary = "\n\n".join(readable_answers)
                 phase2_cat = result.phase_2_category or "Unknown"
@@ -2744,12 +2746,12 @@ async def final_chat(request: Request, chat_req: FinalChatRequest, db: Session =
                 flat_questions.append(q_dict)
     elif mode == "12th":
         flat_questions = [
-            {"id": q["id"], "title": q["title"], "text": q["text"], "insight": q["insight"], "type": "open"}
+            {"id": q["id"], "title": q.get("title") or q.get("question"), "text": q.get("text"), "insight": q["insight"], "type": "open"}
             for q in questions_12th
         ]
     else:  # above
         flat_questions = [
-            {"id": q["id"], "title": q["title"], "text": q["text"], "insight": q["insight"], "type": "open"}
+            {"id": q["id"], "title": q.get("title") or q.get("question"), "text": q.get("text"), "insight": q["insight"], "type": "open"}
             for q in questions_above_12th
         ]
 
