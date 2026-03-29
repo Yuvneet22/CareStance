@@ -62,11 +62,11 @@
                     <div class="question-step hidden space-y-6" data-step="{{ ns.counter }}">
                         <div class="mb-4">
                             {% set section_img = {
-                                'Section A': '/static/images/p3/focused_specialist.png',
-                                'Section B': '/static/images/p3/strategic_builder.png',
-                                'Section C': '/static/images/p3/quiet_explorer.png',
-                                'Section D': '/static/images/p3/social_catalyst.png',
-                                'Section E': '/static/images/p3/versatile_seeker.png'
+                            'Section A': '/static/images/p3/focused_specialist.png',
+                            'Section B': '/static/images/p3/strategic_builder.png',
+                            'Section C': '/static/images/p3/quiet_explorer.png',
+                            'Section D': '/static/images/p3/social_catalyst.png',
+                            'Section E': '/static/images/p3/versatile_seeker.png'
                             }.get(section.title, '/static/images/p3/focused_specialist.png') %}
                             <div class="mb-6 rounded-2xl overflow-hidden shadow-lg border-2 border-slate-100">
                                 <img src="{{ section_img }}" alt="{{ section.title }}" class="w-full h-40 object-cover">
@@ -79,7 +79,9 @@
                         {% if q.type == 'open' %}
                         <div class="space-y-4">
                             <div class="relative">
-                                <label for="{{ q.id }}" class="block text-sm font-medium text-slate-500 mb-2 uppercase tracking-wider">Your Answer (Type or Speak)</label>
+                                <label for="{{ q.id }}"
+                                    class="block text-sm font-medium text-slate-500 mb-2 uppercase tracking-wider">Your
+                                    Answer (Type or Speak)</label>
                                 <div class="flex gap-3">
                                     <textarea id="{{ q.id }}" name="{{ q.id }}" rows="3" required
                                         class="shadow-sm focus:ring-4 focus:ring-violet-500/20 focus:border-violet-500 block w-full sm:text-lg border-slate-200 rounded-xl p-4 transition-all duration-300 bg-white/80 backdrop-blur-sm"
@@ -89,7 +91,8 @@
                                         id="btn-10th-{{ q.id }}" title="Record Audio">🎤
                                     </button>
                                 </div>
-                                <p id="status-10th-{{ q.id }}" class="text-sm font-bold text-violet-600 mt-2 hidden animate-pulse flex items-center gap-2">
+                                <p id="status-10th-{{ q.id }}"
+                                    class="text-sm font-bold text-violet-600 mt-2 hidden animate-pulse flex items-center gap-2">
                                     <span class="h-2 w-2 bg-violet-600 rounded-full"></span> Listening...
                                 </p>
                             </div>
@@ -123,24 +126,46 @@
                     <div class="question-step hidden space-y-6" data-step="{{ loop.index0 }}">
                         <div class="mb-4">
                             {% set scenario_images = [
-                                '/static/images/p3/focused_specialist.png',
-                                '/static/images/p3/strategic_builder.png',
-                                '/static/images/p3/quiet_explorer.png',
-                                '/static/images/p3/social_catalyst.png',
-                                '/static/images/p3/visionary_leader.png',
-                                '/static/images/p3/versatile_seeker.png'
+                            '/static/images/p3/focused_specialist.png',
+                            '/static/images/p3/strategic_builder.png',
+                            '/static/images/p3/quiet_explorer.png',
+                            '/static/images/p3/social_catalyst.png',
+                            '/static/images/p3/visionary_leader.png',
+                            '/static/images/p3/versatile_seeker.png'
                             ] %}
-                            <div class="mb-6 rounded-2xl overflow-hidden shadow-xl border-2 border-slate-100 transform hover:scale-[1.01] transition-transform">
-                                <img src="{{ scenario_images[loop.index0 % 6] }}" alt="Scenario Image" class="w-full h-48 object-cover">
+                            <div
+                                class="mb-6 rounded-2xl overflow-hidden shadow-xl border-2 border-slate-100 transform hover:scale-[1.01] transition-transform">
+                                <img src="{{ scenario_images[loop.index0 % 6] }}" alt="Scenario Image"
+                                    class="w-full h-48 object-cover">
                             </div>
                             <span
                                 class="inline-block px-3 py-1 text-xs font-semibold tracking-wide uppercase text-indigo-600 bg-indigo-100 rounded-full mb-3">Scenario
                                 {{ loop.index }}</span>
-                            <h4 class="text-2xl font-extrabold text-slate-800 mb-2 question-title">{{ q.title }}</h4>
+                            <h4 class="text-2xl font-extrabold text-slate-800 mb-2 question-title">{{ q.title or
+                                q.question }}</h4>
                         </div>
+
+                        {% if q.text %}
                         <p
                             class="text-slate-600 text-lg italic bg-slate-50 p-4 rounded-xl border border-slate-100 mb-6">
                             "{{ q.text }}"</p>
+                        {% endif %}
+
+                        {% if q.options %}
+                        <div class="space-y-3">
+                            {% for opt in q.options %}
+                            <label
+                                class="relative flex items-center p-4 rounded-xl border-2 border-slate-200/60 bg-white/80 cursor-pointer transition-all duration-300 hover:shadow-lg hover:shadow-indigo-200/50 hover:border-indigo-300 hover:-translate-y-1 has-[:checked]:border-emerald-500 has-[:checked]:bg-emerald-50/50 has-[:checked]:shadow-emerald-200/30 group">
+                                <input type="radio" name="{{ q.id }}" value="{{ opt.value }}" required
+                                    onchange="handleSelection(this)"
+                                    class="h-5 w-5 text-emerald-500 focus:ring-emerald-500 border-slate-300 transition-colors">
+                                <span
+                                    class="ml-4 text-slate-700 font-medium group-hover:text-slate-900 group-has-[:checked]:text-emerald-900 transition-colors">{{
+                                    opt.text }}</span>
+                            </label>
+                            {% endfor %}
+                        </div>
+                        {% else %}
                         <div class="relative">
                             <label for="{{ q.id }}"
                                 class="block text-sm font-medium text-slate-500 mb-2 uppercase tracking-wider">Your
@@ -159,6 +184,8 @@
                                 <span class="h-2 w-2 bg-indigo-600 rounded-full"></span> Listening...
                             </p>
                         </div>
+                        {% endif %}
+
                         <div class="pt-6 flex justify-between items-center">
                             <button type="button" onclick="prevStep()"
                                 class="px-6 py-3 text-slate-500 font-bold hover:text-slate-800 transition-colors rounded-xl hover:bg-slate-100">Previous</button>
@@ -375,10 +402,10 @@
         const pfx = modePrefix ? modePrefix + '-' : '';
         const btn = document.getElementById(`btn-${pfx}${questionId}`);
         const status = document.getElementById(`status-${pfx}${questionId}`);
-        if(btn) btn.classList.remove('listening', 'bg-red-50', 'text-red-600', 'border-red-200');
-        if(btn) btn.classList.add('bg-white'); 
-        if(btn) btn.innerHTML = '🎤'; 
-        if(status) status.classList.add('hidden');
+        if (btn) btn.classList.remove('listening', 'bg-red-50', 'text-red-600', 'border-red-200');
+        if (btn) btn.classList.add('bg-white');
+        if (btn) btn.innerHTML = '🎤';
+        if (status) status.classList.add('hidden');
     }
 
     document.getElementById('assessment-form').addEventListener('submit', function () {
