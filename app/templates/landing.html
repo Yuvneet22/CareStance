@@ -5,7 +5,7 @@
     <meta name="google-adsense-account" content="ca-pub-6546135271987768">
     <meta charset="UTF-8">
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6546135271987768"
-     crossorigin="anonymous"></script>
+        crossorigin="anonymous"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CareStance | AI Career Counselling Platform</title>
     <meta name="description"
@@ -20,8 +20,7 @@
     <link rel="preload" as="image" href="/static/images/image.png">
 
     <!-- Tailwind CSS -->
-    <!-- Note: Using Play CDN blocks rendering. For maximum speed in production, generate a static CSS file. -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/static/css/style.css">
 
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -42,52 +41,6 @@
     <!-- Alpine.js for Interactivity -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
-                        display: ['"Outfit"', 'sans-serif'],
-                    },
-                    colors: {
-                        brand: {
-                            50: '#eff6ff',
-                            100: '#dbeafe',
-                            500: '#3b82f6',
-                            600: '#2563eb',
-                            900: '#1e3a8a',
-                        },
-                        accent: {
-                            400: '#a78bfa',
-                            500: '#8b5cf6',
-                        }
-                    },
-                    animation: {
-                        'blob': 'blob 7s infinite',
-                        'float': 'float 6s ease-in-out infinite',
-                        'scroll': 'scroll 20s linear infinite',
-                    },
-                    keyframes: {
-                        blob: {
-                            '0%': { transform: 'translate(0px, 0px) scale(1)' },
-                            '33%': { transform: 'translate(30px, -50px) scale(1.1)' },
-                            '66%': { transform: 'translate(-20px, 20px) scale(0.9)' },
-                            '100%': { transform: 'translate(0px, 0px) scale(1)' },
-                        },
-                        float: {
-                            '0%, 100%': { transform: 'translateY(0)' },
-                            '50%': { transform: 'translateY(-20px)' },
-                        },
-                        scroll: {
-                            '0%': { transform: 'translateX(0)' },
-                            '100%': { transform: 'translateX(-100%)' },
-                        }
-                    }
-                }
-            }
-        }
-    </script>
 
     <style>
         /* Custom Scrollbar */
@@ -157,6 +110,8 @@
                 <a href="#students" class="hover:text-white transition">For Students</a>
                 <a href="#counsellors" class="hover:text-white transition">For Counsellors</a>
                 <a href="#how-it-works" class="hover:text-white transition">How it Works</a>
+                <a href="/static/manuals/CareStance_User_Manual.pdf" target="_blank"
+                    class="hover:text-white transition">User Manual</a>
                 <div class="h-4 w-px bg-white/10"></div>
                 <a href="/login" class="hover:text-white transition">Log In</a>
                 <a href="/signup"
@@ -181,6 +136,8 @@
                 class="text-lg font-medium py-2 hover:text-blue-400 transition">For Students</a>
             <a href="#counsellors" @click="mobileMenu = false"
                 class="text-lg font-medium py-2 hover:text-blue-400 transition">For Counsellors</a>
+            <a href="/static/manuals/CareStance_User_Manual.pdf" target="_blank" @click="mobileMenu = false"
+                class="text-lg font-medium py-2 hover:text-blue-400 transition">User Manual</a>
             <a href="/login" class="text-lg font-medium text-blue-400 py-2 hover:text-blue-300 transition">Log In</a>
             <a href="/signup"
                 class="bg-blue-600 hover:bg-blue-500 transition text-center py-4 mt-2 rounded-xl font-bold text-white shadow-lg">Get
@@ -656,6 +613,8 @@
                     <li><a href="#" class="hover:text-blue-400 transition">For Counsellors</a></li>
                     <li><a href="#" class="hover:text-blue-400 transition">Institutions</a></li>
                     <li><a href="#" class="hover:text-blue-400 transition">Pricing</a></li>
+                    <li><a href="/static/manuals/CareStance_User_Manual.pdf" target="_blank"
+                            class="hover:text-blue-400 transition">User Manual</a></li>
                 </ul>
             </div>
 
