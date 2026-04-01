@@ -372,6 +372,51 @@ async def complete_onboarding(request: Request, db: Session = Depends(get_db)):
         db.commit()
     return {"status": "success"}
 
+@app.get("/articles", response_class=HTMLResponse)
+async def articles_page(request: Request, db: Session = Depends(get_db)):
+    user = get_current_user(request, db)
+    return templates.TemplateResponse(request=request, name="articles.html", context={"user": user})
+
+@app.get("/robots.txt")
+async def robots_txt():
+    content = "User-agent: *\nAllow: /\nSitemap: https://carestance.me/sitemap.xml"
+    return Response(content=content, media_type="text/plain")
+
+@app.get("/sitemap.xml")
+async def sitemap_xml():
+    # Simple static sitemap for now
+    content = """<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://carestance.me/</loc><priority>1.0</priority></url>
+  <url><loc>https://carestance.me/signup</loc><priority>0.8</priority></url>
+  <url><loc>https://carestance.me/login</loc><priority>0.8</priority></url>
+  <url><loc>https://carestance.me/founders</loc><priority>0.7</priority></url>
+  <url><loc>https://carestance.me/articles</loc><priority>0.9</priority></url>
+  <url><loc>https://carestance.me/privacy</loc><priority>0.5</priority></url>
+  <url><loc>https://carestance.me/terms</loc><priority>0.5</priority></url>
+</urlset>"""
+    return Response(content=content, media_type="application/xml")
+
+@app.get("/admin/create-adsense-test-user")
+async def create_adsense_test_user(db: Session = Depends(get_db)):
+    # Create a user for AdSense crawler to use
+    email = "adsense-tester@carestance.me"
+    existing = db.query(models.User).filter(models.User.email == email).first()
+    if existing:
+        return {"message": "User already exists", "email": email, "password": "CareStance2026!"}
+    
+    hashed_pw = get_password_hash("CareStance2026!")
+    new_user = models.User(
+        email=email, 
+        hashed_password=hashed_pw, 
+        full_name="AdSense Analytics Tester", 
+        role="student",
+        onboarded=True # Skip the onboarding for the bot
+    )
+    db.add(new_user)
+    db.commit()
+    return {"message": "AdSense Test User Created Successfully", "email": email, "password": "CareStance2026!"}
+
 @app.get("/signup", response_class=HTMLResponse)
 async def signup_page(request: Request):
     return templates.TemplateResponse(request=request, name="signup.html")
