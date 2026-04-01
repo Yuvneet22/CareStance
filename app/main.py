@@ -13,19 +13,17 @@ import re
 import json
 import uuid
 import datetime
-import shutil
-
+import asyncio
 import os
-import json
+import shutil
+from . import email_utils
 import google.generativeai as genai
-from groq import Groq
+from groq import Groq, AsyncGroq
 from dotenv import load_dotenv
 from starlette.middleware.sessions import SessionMiddleware
 from authlib.integrations.starlette_client import OAuth
-
-from groq import AsyncGroq
 import razorpay
-from . import models, email_utils
+from . import models
 from .email_utils import (
     send_email, 
     get_booking_template, 
@@ -716,7 +714,7 @@ QUESTIONS = [
 
 @app.get("/assessment/start")
 async def assessment_start(request: Request, class_level: str, db: Session = Depends(get_db)):
-    """Phase 1: Class Selection"""
+    """Phase 1: Class Selection & Reset for New Attempt"""
     user = get_current_user(request, db)
     if not user:
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
@@ -724,7 +722,25 @@ async def assessment_start(request: Request, class_level: str, db: Session = Dep
     try:
         # Check/Create Result
         result = db.query(models.AssessmentResult).filter(models.AssessmentResult.user_id == user.id).first()
-        if not result:
+        
+        if result:
+            # Clear all previous progress fields to ensure "Output Changes Accordingly" on retake
+            result.phase_2_category = None
+            result.personality = None
+            result.goal_status = None
+            result.confidence = None
+            result.reasoning = None
+            result.raw_answers = None
+            result.phase3_result = None
+            result.phase3_answers = None
+            result.phase3_analysis = None
+            result.final_answers = None
+            result.stream_scores = None
+            result.recommended_stream = None
+            result.final_analysis = None
+            result.stream_pros = None
+            result.stream_cons = None
+        else:
             result = models.AssessmentResult(user_id=user.id)
             db.add(result)
         
@@ -734,11 +750,23 @@ async def assessment_start(request: Request, class_level: str, db: Session = Dep
     except Exception as e:
         print(f"Assessment start error: {e}")
         db.rollback()
-        # Fallback to landing or dashboard
         return RedirectResponse(url="/dashboard?error=Assessment+failed+to+start", status_code=status.HTTP_302_FOUND)
     
-    # Proceed to Phase 2 (Archetype)
     return RedirectResponse(url="/assessment", status_code=status.HTTP_302_FOUND)
+
+@app.get("/assessment/reset")
+async def assessment_reset(request: Request, db: Session = Depends(get_db)):
+    """Explicitly reset assessment and go to dashboard"""
+    user = get_current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+    
+    result = db.query(models.AssessmentResult).filter(models.AssessmentResult.user_id == user.id).first()
+    if result:
+        db.delete(result)
+        db.commit()
+    
+    return RedirectResponse(url="/dashboard?message=Assessment+reset+successfully", status_code=status.HTTP_302_FOUND)
 
 
 @app.get("/assessment", response_class=HTMLResponse)
@@ -1145,6 +1173,57 @@ async def admin_dashboard(
         import traceback
         print(f"ADMIN DASHBOARD ERROR: {traceback.format_exc()}")
         return RedirectResponse(url=f"/dashboard?error=Admin+Error:+{str(e)[:100]}", status_code=status.HTTP_302_FOUND)
+
+@app.post("/admin/send-completion-reminders")
+async def send_completion_reminders(request: Request, db: Session = Depends(get_db)):
+    current_user = get_current_user(request, db)
+    if not current_user:
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+    
+    admin_email = os.getenv("ADMIN_EMAIL")
+    if current_user.role != "admin" and (not admin_email or current_user.email != admin_email):
+        return RedirectResponse(url="/dashboard?error=Admin access denied", status_code=status.HTTP_302_FOUND)
+
+    # Fetch all users and filter in Python to handle NULL roles correctly
+    all_users = db.query(models.User).all()
+    count = 0
+    
+    for u in all_users:
+        # Skip admins
+        if u.role == "admin" or u.email == admin_email:
+            continue
+            
+        is_incomplete = False
+        
+        # 1. No role selected
+        if not u.role:
+            is_incomplete = True
+            
+        # 2. Student with missing assessment phases
+        elif u.role == "student":
+            assessment = db.query(models.AssessmentResult).filter(models.AssessmentResult.user_id == u.id).first()
+            if not assessment or not assessment.final_answers:
+                is_incomplete = True
+                
+        # 3. Counsellor with missing profile details
+        elif u.role == "counsellor":
+            prof = db.query(models.CounsellorProfile).filter(models.CounsellorProfile.user_id == u.id).first()
+            # Check for missing experience, availability, or certificates
+            if not prof or not prof.experience or not prof.availability or not prof.certificates:
+                is_incomplete = True
+
+        if is_incomplete:
+            # Send Email
+            subject = "Complete Your Profile | CareStance"
+            html = email_utils.get_profile_completion_template(u.full_name)
+            
+            success = email_utils.send_email(u.email, subject, html)
+            if success:
+                count += 1
+                # Small delay to avoid hitting rate limits
+                await asyncio.sleep(0.1)
+
+    return RedirectResponse(url=f"/admin?msg=Reminders sent to {count} users with incomplete profiles", status_code=status.HTTP_302_FOUND)
 
 @app.post("/admin/users/{user_id}/delete")
 async def delete_user(user_id: int, request: Request, db: Session = Depends(get_db)):
@@ -2525,14 +2604,16 @@ async def assessment_final_submit(request: Request, db: Session = Depends(get_db
                      q_map = {q["id"]: q for q in questions_12th}
                      for q_id, ans_text in answers.items():
                          if q_id in q_map:
-                             readable_answers.append(f"Scenario: {q_map[q_id]['title']}\nInsight: {q_map[q_id]['insight']}\nUser Response: {ans_text}")
+                             q_title = q_map[q_id].get('title') or q_map[q_id].get('question')
+                             readable_answers.append(f"Scenario: {q_title}\nInsight: {q_map[q_id]['insight']}\nUser Response: {ans_text}")
 
                 elif mode == "above":
                      # Use questions_above_12th data
                      q_map = {q["id"]: q for q in questions_above_12th}
                      for q_id, ans_text in answers.items():
                          if q_id in q_map:
-                             readable_answers.append(f"Question: {q_map[q_id]['title']}\nContext: {q_map[q_id]['insight']}\nUser Response: {ans_text}")
+                             q_title = q_map[q_id].get('title') or q_map[q_id].get('question')
+                             readable_answers.append(f"Question: {q_title}\nContext: {q_map[q_id]['insight']}\nUser Response: {ans_text}")
 
                 answers_summary = "\n\n".join(readable_answers)
                 phase2_cat = result.phase_2_category or "Unknown"
@@ -2728,12 +2809,12 @@ async def final_chat(request: Request, chat_req: FinalChatRequest, db: Session =
                 flat_questions.append(q_dict)
     elif mode == "12th":
         flat_questions = [
-            {"id": q["id"], "title": q["title"], "text": q["text"], "insight": q["insight"], "type": "open"}
+            {"id": q["id"], "title": q.get("title") or q.get("question"), "text": q.get("text"), "insight": q["insight"], "type": "open"}
             for q in questions_12th
         ]
     else:  # above
         flat_questions = [
-            {"id": q["id"], "title": q["title"], "text": q["text"], "insight": q["insight"], "type": "open"}
+            {"id": q["id"], "title": q.get("title") or q.get("question"), "text": q.get("text"), "insight": q["insight"], "type": "open"}
             for q in questions_above_12th
         ]
 
