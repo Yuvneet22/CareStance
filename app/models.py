@@ -152,7 +152,7 @@ class Appointment(Base):
     id = Column(Integer, primary_key=True, index=True)
     student_id = Column(Integer, ForeignKey("users.id"), index=True)
     counsellor_id = Column(Integer, ForeignKey("users.id"), index=True)
-    appointment_time = Column(DateTime)
+    appointment_time = Column(DateTime, index=True)
     status = Column(String, default="requested", index=True)  # requested, accepted, rejected, completed, cancelled
     payment_status = Column(String, default="pending")  # pending, paid
     meeting_link = Column(String, nullable=True)

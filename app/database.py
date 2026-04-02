@@ -38,10 +38,11 @@ if not SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
         from sqlalchemy.pool import NullPool
         engine_args["poolclass"] = NullPool
     else:
-        engine_args["pool_size"] = 20
-        engine_args["max_overflow"] = 40
+        # Optimized for Supabase (Transaction Mode)
+        engine_args["pool_size"] = 15
+        engine_args["max_overflow"] = 30
         engine_args["pool_timeout"] = 30
-        engine_args["pool_recycle"] = 1800
+        engine_args["pool_recycle"] = 1200 # Recycle connections more often to prevent staleness
         engine_args["pool_pre_ping"] = True
 
 engine = create_engine(SQLALCHEMY_DATABASE_URL, **engine_args)

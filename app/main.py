@@ -6,7 +6,7 @@ from typing import List, Optional
 from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from .database import SessionLocal
 import bcrypt
 import re
@@ -206,12 +206,16 @@ def run_migrations():
                            ('student_joined', 'BOOLEAN DEFAULT FALSE'), ('student_joined_at', 'TIMESTAMP'),
                            ('actual_overlap_minutes', 'INTEGER DEFAULT 0')]:
                 if col not in ap_cols: migrations.append(f"ALTER TABLE appointments ADD COLUMN {col} {ty}")
+            # Add index for appointment_time if it doesn't exist
+            # Note: This is a safe try-catch for PostgreSQL/SQLite differences
+            migrations.append("CREATE INDEX IF NOT EXISTS ix_appointments_appointment_time ON appointments (appointment_time)")
 
         # 4. Student Messages
         sm_cols = get_columns('student_messages')
         if sm_cols:
             if 'attachment_path' not in sm_cols: migrations.append("ALTER TABLE student_messages ADD COLUMN attachment_path VARCHAR")
             if 'attachment_type' not in sm_cols: migrations.append("ALTER TABLE student_messages ADD COLUMN attachment_type VARCHAR")
+            migrations.append("CREATE INDEX IF NOT EXISTS ix_student_messages_timestamp ON student_messages (timestamp)")
 
         # 5. Assessment Results
         ar_cols = get_columns('assessment_results')
@@ -222,6 +226,11 @@ def run_migrations():
                            ('recommended_stream', 'VARCHAR'), ('final_analysis', 'TEXT'),
                            ('stream_pros', 'JSON'), ('stream_cons', 'JSON')]:
                 if col not in ar_cols: migrations.append(f"ALTER TABLE assessment_results ADD COLUMN {col} {ty}")
+            
+        # 6. Notifications
+        n_cols = get_columns('notifications')
+        if n_cols:
+            migrations.append("CREATE INDEX IF NOT EXISTS ix_notifications_created_at ON notifications (created_at)")
 
         if migrations:
             print(f"DEBUG: Found {len(migrations)} pending migrations.", flush=True)
@@ -1087,8 +1096,11 @@ async def dashboard(request: Request, db: Session = Depends(get_db)):
     # Fetch assessment result to show on dashboard
     assessment = db.query(models.AssessmentResult).filter(models.AssessmentResult.user_id == user.id).first()
     
-    # Fetch student appointments (scheduled & completed for rating)
-    appointments = db.query(models.Appointment).filter(
+    # Fetch student appointments (scheduled & completed for rating) with eager loading to prevent N+1
+    appointments = db.query(models.Appointment).options(
+        joinedload(models.Appointment.counsellor),
+        joinedload(models.Appointment.rating_record)
+    ).filter(
         models.Appointment.student_id == user.id,
         models.Appointment.status.in_(["scheduled", "completed"])
     ).order_by(models.Appointment.appointment_time.desc()).all()
@@ -1706,7 +1718,10 @@ async def list_counsellors(request: Request, db: Session = Depends(get_db)):
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
         
     # Only show verified AND non-blocked counsellors to students
-    counsellors = db.query(models.CounsellorProfile).filter(
+    # Eager load 'user' to prevent N+1 queries in the template loop
+    counsellors = db.query(models.CounsellorProfile).options(
+        joinedload(models.CounsellorProfile.user)
+    ).filter(
         models.CounsellorProfile.is_verified == True,
         models.CounsellorProfile.is_blocked == False
     ).all()
