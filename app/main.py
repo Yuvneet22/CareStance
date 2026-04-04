@@ -1,5 +1,17 @@
+import json
+import uuid
+import datetime
+import asyncio
+import os
+import shutil
 import warnings
 from types import SimpleNamespace
+from . import email_utils
+import google.generativeai as genai
+from groq import Groq, AsyncGroq
+from dotenv import load_dotenv
+from starlette.middleware.sessions import SessionMiddleware
+from authlib.integrations.starlette_client import OAuth
 from fastapi import FastAPI, Depends, HTTPException, status, Request, Form, Response, BackgroundTasks, File, UploadFile
 from pydantic import BaseModel
 from typing import List, Optional
@@ -7,11 +19,9 @@ from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session, joinedload
-from .database import SessionLocal
+from .database import SessionLocal, engine, get_db
 import bcrypt
 import re
-import json
-import uuid
 import datetime
 import asyncio
 import os
@@ -250,9 +260,12 @@ def run_migrations():
         import traceback
         traceback.print_exc()
 
-run_migrations()
-
 app = FastAPI(title="CareStance")
+
+@app.on_event("startup")
+async def startup_event():
+    """Run migrations on startup asynchronously to not block the main process."""
+    run_migrations()
 
 # ─── Include Split Payments Router (Razorpay Route) ───────────────────────────
 from .routes.payments import router as payments_router
@@ -380,7 +393,13 @@ async def home(request: Request, db: Session = Depends(get_db)):
 @app.get("/founders", response_class=HTMLResponse)
 async def founders_page(request: Request, db: Session = Depends(get_db)):
     user = get_current_user(request, db)
-    return templates.TemplateResponse(request=request, name="founders.html", context={"user": user})
+    try:
+        template = templates.get_template("founders.html")
+        content = template.render({"request": request, "user": user})
+        return HTMLResponse(content=content)
+    except Exception as e:
+        import traceback
+        return HTMLResponse(content=f"Template Error: {e}<br><pre>{traceback.format_exc()}</pre>", status_code=500)
 
 @app.post("/complete-onboarding")
 async def complete_onboarding(request: Request, db: Session = Depends(get_db)):
@@ -393,7 +412,13 @@ async def complete_onboarding(request: Request, db: Session = Depends(get_db)):
 @app.get("/articles", response_class=HTMLResponse)
 async def articles_page(request: Request, db: Session = Depends(get_db)):
     user = get_current_user(request, db)
-    return templates.TemplateResponse(request=request, name="articles.html", context={"user": user})
+    try:
+        template = templates.get_template("articles.html")
+        content = template.render({"request": request, "user": user})
+        return HTMLResponse(content=content)
+    except Exception as e:
+        import traceback
+        return HTMLResponse(content=f"Template Error: {e}<br><pre>{traceback.format_exc()}</pre>", status_code=500)
 
 @app.get("/robots.txt")
 async def robots_txt():
@@ -437,7 +462,13 @@ async def create_adsense_test_user(db: Session = Depends(get_db)):
 
 @app.get("/signup", response_class=HTMLResponse)
 async def signup_page(request: Request):
-    return templates.TemplateResponse(request=request, name="signup.html")
+    try:
+        template = templates.get_template("signup.html")
+        content = template.render({"request": request})
+        return HTMLResponse(content=content)
+    except Exception as e:
+        import traceback
+        return HTMLResponse(content=f"Template Error: {e}<br><pre>{traceback.format_exc()}</pre>", status_code=500)
 
 @app.post("/signup")
 async def signup(
@@ -476,7 +507,13 @@ async def signup(
 
 @app.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):
-    return templates.TemplateResponse(request=request, name="login.html")
+    try:
+        template = templates.get_template("login.html")
+        content = template.render({"request": request})
+        return HTMLResponse(content=content)
+    except Exception as e:
+        import traceback
+        return HTMLResponse(content=f"Template Error: {e}<br><pre>{traceback.format_exc()}</pre>", status_code=500)
 
 @app.post("/login")
 async def login(
@@ -511,7 +548,13 @@ async def logout(response: Response):
 
 @app.get("/forgot-password", response_class=HTMLResponse)
 async def forgot_password_page(request: Request):
-    return templates.TemplateResponse(request=request, name="forgot_password.html")
+    try:
+        template = templates.get_template("forgot_password.html")
+        content = template.render({"request": request})
+        return HTMLResponse(content=content)
+    except Exception as e:
+        import traceback
+        return HTMLResponse(content=f"Template Error: {e}<br><pre>{traceback.format_exc()}</pre>", status_code=500)
 
 @app.post("/forgot-password")
 async def forgot_password(
@@ -534,9 +577,16 @@ async def forgot_password(
         )
     
     # Always show success message for security (don't reveal if email exists)
-    return templates.TemplateResponse(request=request, name="forgot_password.html", context={
-        "message": "If an account exists with that email, a reset link has been sent."
-    })
+    try:
+        template = templates.get_template("forgot_password.html")
+        content = template.render({
+            "request": request, 
+            "message": "If an account exists with that email, a reset link has been sent."
+        })
+        return HTMLResponse(content=content)
+    except Exception as e:
+        import traceback
+        return HTMLResponse(content=f"Template Error: {e}<br><pre>{traceback.format_exc()}</pre>", status_code=500)
 
 @app.get("/reset-password/{token}", response_class=HTMLResponse)
 async def reset_password_page(request: Request, token: str):
@@ -544,10 +594,24 @@ async def reset_password_page(request: Request, token: str):
         # Token valid for 1 hour (3600 seconds)
         email = serializer.loads(token, salt="password-reset-salt", max_age=3600)
     except Exception:
-        return templates.TemplateResponse(request=request, name="forgot_password.html", context={
-            "error": "The reset link is invalid or has expired."
-        })
-    return templates.TemplateResponse(request=request, name="reset_password.html", context={"token": token})
+        try:
+            template = templates.get_template("forgot_password.html")
+            content = template.render({
+                "request": request, 
+                "error": "The reset link is invalid or has expired."
+            })
+            return HTMLResponse(content=content)
+        except Exception as e:
+            import traceback
+            return HTMLResponse(content=f"Template Error: {e}<br><pre>{traceback.format_exc()}</pre>", status_code=500)
+    
+    try:
+        template = templates.get_template("reset_password.html")
+        content = template.render({"request": request, "token": token})
+        return HTMLResponse(content=content)
+    except Exception as e:
+        import traceback
+        return HTMLResponse(content=f"Template Error: {e}<br><pre>{traceback.format_exc()}</pre>", status_code=500)
 
 @app.post("/reset-password/{token}")
 async def reset_password(
@@ -656,7 +720,13 @@ async def select_role_page(request: Request, db: Session = Depends(get_db)):
     # If user already has a role, skip this page
     if user.role:
         return RedirectResponse(url="/dashboard", status_code=status.HTTP_302_FOUND)
-    return templates.TemplateResponse(request=request, name="select_role.html", context={"user": user})
+    try:
+        template = templates.get_template("select_role.html")
+        content = template.render({"request": request, "user": user})
+        return HTMLResponse(content=content)
+    except Exception as e:
+        import traceback
+        return HTMLResponse(content=f"Template Error: {e}<br><pre>{traceback.format_exc()}</pre>", status_code=500)
 
 @app.post("/select-role")
 async def select_role(
@@ -763,7 +833,13 @@ async def assessment_page(request: Request, db: Session = Depends(get_db)):
     user = get_current_user(request, db)
     if not user:
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
-    return templates.TemplateResponse(request=request, name="assessment.html", context={"user": user, "questions": questions})
+    try:
+        template = templates.get_template("assessment.html")
+        content = template.render({"request": request, "user": user, "questions": questions})
+        return HTMLResponse(content=content)
+    except Exception as e:
+        import traceback
+        return HTMLResponse(content=f"Template Error: {e}<br><pre>{traceback.format_exc()}</pre>", status_code=500)
 
 @app.post("/assessment/submit")
 async def assessment_submit(
@@ -1004,14 +1080,21 @@ async def dashboard(request: Request, db: Session = Depends(get_db)):
             "avg_rating": avg_rating
         }
 
-        return templates.TemplateResponse(request=request, name="counsellor_dashboard.html", context={
-            "user": user, 
-            "profile": profile, 
-            "appointments": appointments, 
-            "notifications": notifications,
-            "stats": dashboard_stats,
-            "reviews": recent_reviews
-        })
+        try:
+            template = templates.get_template("counsellor_dashboard.html")
+            content = template.render({
+                "request": request, 
+                "user": user, 
+                "profile": profile, 
+                "appointments": appointments, 
+                "notifications": notifications,
+                "stats": dashboard_stats,
+                "reviews": recent_reviews
+            })
+            return HTMLResponse(content=content)
+        except Exception as e:
+            import traceback
+            return HTMLResponse(content=f"Template Error: {e}<br><pre>{traceback.format_exc()}</pre>", status_code=500)
     
     # Fetch assessment result to show on dashboard
     assessment = db.query(models.AssessmentResult).filter(models.AssessmentResult.user_id == user.id).first()
@@ -1034,13 +1117,20 @@ async def dashboard(request: Request, db: Session = Depends(get_db)):
         models.StudentConnection.status == "pending"
     ).count()
     
-    return templates.TemplateResponse(request=request, name="dashboard.html", context={
-        "user": user, 
-        "assessment": assessment,
-        "appointments": appointments,
-        "tickets": tickets,
-        "pending_conn_count": pending_conn_count
-    })
+    try:
+        template = templates.get_template("dashboard.html")
+        content = template.render({
+            "request": request, 
+            "user": user, 
+            "assessment": assessment,
+            "appointments": appointments,
+            "tickets": tickets,
+            "pending_conn_count": pending_conn_count
+        })
+        return HTMLResponse(content=content)
+    except Exception as e:
+        import traceback
+        return HTMLResponse(content=f"Template Error: {e}<br><pre>{traceback.format_exc()}</pre>", status_code=500)
 
 @app.get("/admin", response_class=HTMLResponse)
 async def admin_dashboard(
@@ -1136,31 +1226,38 @@ async def admin_dashboard(
         # Fetch Moderation Flags (Limited for performance)
         moderation_flags = db.query(models.ModerationFlag).order_by(models.ModerationFlag.timestamp.desc()).limit(50).all()
 
-        return templates.TemplateResponse(request=request, name="admin_dashboard.html", context={
-            "user": current_user, 
-            "users": all_users,
-            "total_users": total_users,
-            "user_page": user_page,
-            "feedbacks": all_feedback,
-            "total_feedback": total_feedback,
-            "feedback_page": feedback_page,
-            "tickets": all_tickets,
-            "total_tickets": total_tickets,
-            "ticket_page": ticket_page,
-            "page_size": page_size,
-            "pending_counsellors": pending_counsellors,
-            "all_counsellors": all_counsellors,
-            "all_payments": all_payments,
-            "total_revenue": total_revenue,
-            "total_counselor_payouts": total_counselor_payouts,
-            "platform_commission": platform_commission,
-            "pending_transfers": pending_transfers,
-            "failed_transfers": failed_transfers,
-            "captured_payments_count": captured_payments_count,
-            "moderation_flags": moderation_flags,
-            "user_search": user_search,
-            "counsellor_search": counsellor_search
-        })
+        try:
+            template = templates.get_template("admin_dashboard.html")
+            content = template.render({
+                "request": request, 
+                "user": current_user, 
+                "users": all_users,
+                "total_users": total_users,
+                "user_page": user_page,
+                "feedbacks": all_feedback,
+                "total_feedback": total_feedback,
+                "feedback_page": feedback_page,
+                "tickets": all_tickets,
+                "total_tickets": total_tickets,
+                "ticket_page": ticket_page,
+                "page_size": page_size,
+                "pending_counsellors": pending_counsellors,
+                "all_counsellors": all_counsellors,
+                "all_payments": all_payments,
+                "total_revenue": total_revenue,
+                "total_counselor_payouts": total_counselor_payouts,
+                "platform_commission": platform_commission,
+                "pending_transfers": pending_transfers,
+                "failed_transfers": failed_transfers,
+                "captured_payments_count": captured_payments_count,
+                "moderation_flags": moderation_flags,
+                "user_search": user_search,
+                "counsellor_search": counsellor_search
+            })
+            return HTMLResponse(content=content)
+        except Exception as e:
+            import traceback
+            return HTMLResponse(content=f"Template Error: {e}<br><pre>{traceback.format_exc()}</pre>", status_code=500)
     except Exception as e:
         import traceback
         print(f"ADMIN DASHBOARD ERROR: {traceback.format_exc()}")
@@ -1646,7 +1743,13 @@ async def list_counsellors(request: Request, db: Session = Depends(get_db)):
         models.CounsellorProfile.is_blocked == False
     ).all()
     
-    return templates.TemplateResponse(request=request, name="counsellors_list.html", context={"user": user, "counsellors": counsellors})
+    try:
+        template = templates.get_template("counsellors_list.html")
+        content = template.render({"request": request, "user": user, "counsellors": counsellors})
+        return HTMLResponse(content=content)
+    except Exception as e:
+        import traceback
+        return HTMLResponse(content=f"Template Error: {e}<br><pre>{traceback.format_exc()}</pre>", status_code=500)
 
 import datetime
 import uuid
@@ -4082,20 +4185,27 @@ async def get_student_messages(conn_id: int, request: Request, after_id: int = 0
     }
 
 
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
-
-
 @app.get("/privacy", response_class=HTMLResponse)
 async def privacy_page(request: Request, db: Session = Depends(get_db)):
     user = get_current_user(request, db)
-    return templates.TemplateResponse(request=request, name="privacy.html", context={"user": user})
+    try:
+        template = templates.get_template("privacy.html")
+        content = template.render({"request": request, "user": user})
+        return HTMLResponse(content=content)
+    except Exception as e:
+        import traceback
+        return HTMLResponse(content=f"Template Error: {e}<br><pre>{traceback.format_exc()}</pre>", status_code=500)
 
 @app.get("/terms", response_class=HTMLResponse)
 async def terms_page(request: Request, db: Session = Depends(get_db)):
     user = get_current_user(request, db)
-    return templates.TemplateResponse(request=request, name="terms.html", context={"user": user})
+    try:
+        template = templates.get_template("terms.html")
+        content = template.render({"request": request, "user": user})
+        return HTMLResponse(content=content)
+    except Exception as e:
+        import traceback
+        return HTMLResponse(content=f"Template Error: {e}<br><pre>{traceback.format_exc()}</pre>", status_code=500)
 
 @app.get("/debug/migrate")
 async def debug_migrate(request: Request, db: Session = Depends(get_db)):
@@ -4106,3 +4216,7 @@ async def debug_migrate(request: Request, db: Session = Depends(get_db)):
     except Exception as e:
         import traceback
         return {"status": "error", "message": str(e), "traceback": traceback.format_exc()}
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
