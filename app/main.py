@@ -3069,7 +3069,13 @@ async def chatbot_page(request: Request, db: Session = Depends(get_db)):
     # Fetch History
     history = db.query(models.ChatMessage).filter(models.ChatMessage.user_id == user.id).order_by(models.ChatMessage.timestamp).all()
     
-    return templates.TemplateResponse(request=request, name="chatbot.html", context={"user": user, "history": history})
+    try:
+        template = templates.get_template("chatbot.html")
+        content = template.render({"request": request, "user": user, "history": history})
+        return HTMLResponse(content=content)
+    except Exception as e:
+        import traceback
+        return HTMLResponse(content=f"Template Error: {e}<br><pre>{traceback.format_exc()}</pre>", status_code=500)
 
 @app.post("/assessment/resolve-voice")
 async def resolve_voice(req: ResolveVoiceRequest):
@@ -3241,7 +3247,13 @@ async def feedback_page(request: Request, db: Session = Depends(get_db)):
     user = get_current_user(request, db)
     if not user:
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
-    return templates.TemplateResponse(request=request, name="feedback.html", context={"user": user})
+    try:
+        template = templates.get_template("feedback.html")
+        content = template.render({"request": request, "user": user})
+        return HTMLResponse(content=content)
+    except Exception as e:
+        import traceback
+        return HTMLResponse(content=f"Template Error: {e}<br><pre>{traceback.format_exc()}</pre>", status_code=500)
 
 @app.post("/feedback")
 async def submit_feedback(

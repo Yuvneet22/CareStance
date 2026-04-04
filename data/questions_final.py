@@ -127,9 +127,15 @@ section2_questions = career_orientation_questions[3:6]  # Time, info, creativity
 section3_questions = career_orientation_questions[6:8]  # Challenges, resources
 section4_questions = career_orientation_questions[8:10] # Social, future
 
+# Section Aliases for main.py compatibility
+section_a_questions = section1_questions
+section_b_questions = section2_questions
+section_c_questions = section3_questions
+section_d_questions = section4_questions
+
 all_questions = {
-    "Section A": {"title": "Section A: How You Think & Work with Others", "questions": section1_questions},
-    "Section B": {"title": "Section B: What You Do in Your Free Time", "questions": section2_questions},
-    "Section C": {"title": "Section C: Challenges & Choices", "questions": section3_questions},
-    "Section D": {"title": "Section D: Your Goals & Social Style", "questions": section4_questions}
+    "Section A": {"title": "Section A: How You Think & Work with Others", "questions": section_a_questions},
+    "Section B": {"title": "Section B: What You Do in Your Free Time", "questions": section_b_questions},
+    "Section C": {"title": "Section C: Challenges & Choices", "questions": section_c_questions},
+    "Section D": {"title": "Section D: Your Goals & Social Style", "questions": section_d_questions}
 }
