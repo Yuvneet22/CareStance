@@ -4,13 +4,9 @@
 <head>
     <meta name="google-adsense-account" content="ca-pub-6546135271987768">
     <meta charset="UTF-8">
-    {% block adsense %}
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6546135271987768"
-     crossorigin="anonymous"></script>
-    {% endblock %}
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>CareStance — {% block title %}{% endblock %}</title>
-    <link rel="icon" type="image/png" href="/static/images/image.png">
+    <link rel="icon" type="image/webp" href="/static/images/image.webp">
 
     <!-- DNS Prefetch for third-party resources -->
     <link rel="dns-prefetch" href="//fonts.googleapis.com">
@@ -547,6 +543,10 @@
     </script>
 
     {% block extra_scripts %}{% endblock %}
+    {% block adsense %}
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6546135271987768"
+     crossorigin="anonymous"></script>
+    {% endblock %}
 </body>
 
 </html>

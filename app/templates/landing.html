@@ -4,13 +4,14 @@
 <head>
     <meta name="google-adsense-account" content="ca-pub-6546135271987768">
     <meta charset="UTF-8">
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6546135271987768"
-        crossorigin="anonymous"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>CareStance | AI Career Counselling Platform</title>
-    <link rel="icon" type="image/png" href="/static/images/image.png">
+    <link rel="icon" type="image/webp" href="/static/images/image.webp">
     <meta name="description"
         content="AI-powered career clarity for students and a management platform for top counsellors.">
+
+    <!-- CRITICAL: Preload LCP hero image so browser fetches it immediately -->
+    <link rel="preload" as="image" href="/static/images/hero.webp" type="image/webp" fetchpriority="high">
 
     <!-- DNS Prefetch for third-party resources -->
     <link rel="dns-prefetch" href="//fonts.googleapis.com">
@@ -395,6 +396,21 @@
         .float-chip-2 {
             right: -1rem;
             bottom: 1.5rem;
+        }
+
+        /* hero entry animation (replacing AOS to avoid FOUC/LCP delay) */
+        @keyframes hero-fade-up {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .hero-text-col {
+            animation: hero-fade-up 0.8s ease-out forwards;
+        }
+
+        .hero-visual {
+            animation: hero-fade-up 0.8s ease-out 0.2s forwards;
+            opacity: 0; /* Wait for animation */
         }
 
         /* marquee */
@@ -861,14 +877,14 @@
             {% endif %}
         </div>
     </nav>
-
     <!-- Hero Section -->
     <section class="hero">
         <div class="container">
             <div class="hero-grid">
-                <div data-aos="fade-right">
+                <!-- NO data-aos here: AOS sets opacity:0 until JS loads → delays LCP -->
+                <div class="hero-text-col">
                     <div class="hero-badge"><i class="fa-regular fa-compass"></i> AI-Powered Clarity</div>
-                    <h1 class="hero-title">Shape a career <span class="text-gradient">you’ll love</span> for life.</h1>
+                    <h1 class="hero-title">Shape a career <span class="text-gradient">you'll love</span> for life.</h1>
                     <p class="hero-desc">CareStance blends intelligent psychometrics and real human guidance to unlock your potential. No more guesswork.</p>
                     <div class="hero-actions" style="display: flex; gap: 1rem; flex-wrap: wrap;">
                         <a href="#students" class="btn-primary">I'm a Student <i class="fa-solid fa-arrow-right"></i></a>
@@ -879,9 +895,22 @@
                         <span style="color: var(--text-muted);">Trusted by 12,000+ students</span>
                     </div>
                 </div>
-                <div class="hero-visual" data-aos="fade-left">
+                <!-- NO data-aos on hero-visual: same reason -->
+                <div class="hero-visual">
                     <div class="hero-card">
-                        <img src="https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&q=80&w=800" alt="Career Clarity" loading="lazy" width="800" height="600">
+                        <!-- LCP IMAGE: eager + high priority + local WebP = fast paint -->
+                        <picture>
+                            <source srcset="/static/images/hero.webp" type="image/webp">
+                            <img
+                                src="/static/images/hero.webp"
+                                alt="Career clarity at a glance"
+                                width="800"
+                                height="534"
+                                loading="eager"
+                                fetchpriority="high"
+                                decoding="sync"
+                            >
+                        </picture>
                     </div>
                     <div class="float-chip float-chip-1 glass"><i class="fa-regular fa-lightbulb" style="color: #d97706;"></i><span><strong>Match score 96%</strong><br>UX Designer</span></div>
                     <div class="float-chip float-chip-2 glass"><i class="fa-regular fa-calendar"></i><span><strong>Session today</strong><br>with Priya Sharma</span></div>
@@ -1049,6 +1078,10 @@
             if (!isOpen) { item.classList.add('open'); body.classList.add('open'); }
         };
     </script>
+
+    <!-- AdSense: deferred to bottom -->
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6546135271987768"
+        crossorigin="anonymous"></script>
 </body>
 
 </html>
