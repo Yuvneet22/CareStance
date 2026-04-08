@@ -140,12 +140,13 @@
 
         <div class="relative">
             <!-- Connecting Line -->
-            <div class="absolute top-1/2 left-0 w-full h-1 bg-slate-200 -translate-y-1/2 rounded-full -z-10"></div>
-            <div class="absolute top-1/2 left-0 h-1 -translate-y-1/2 rounded-full -z-10 transition-all duration-1000 db-progress-active"
-                style="width: {% if assessment.final_answers %}100%{% elif assessment.phase3_answers %}75%{% elif assessment %}50%{% else %}10%{% endif %}">
+            <div class="absolute top-5 left-0 w-full rounded-full"
+                style="height: 6px; background: #e2e8f0; z-index: 1;"></div>
+            <div class="absolute top-5 left-0 rounded-full transition-all duration-1000"
+                style="height: 6px; z-index: 2; background: linear-gradient(to right, #0b3b3c, #1b5e5f); width: {% if assessment.final_answers %}100%{% elif assessment.phase3_answers %}75%{% elif assessment %}50%{% else %}10%{% endif %}">
             </div>
 
-            <div class="flex justify-between items-center w-full">
+            <div class="flex justify-between items-center w-full relative" style="z-index: 5;">
                 <!-- Step 1 -->
                 <div class="flex flex-col items-center gap-3 group cursor-default">
                     <div
