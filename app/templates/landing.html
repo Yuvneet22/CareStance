@@ -24,15 +24,25 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
         rel="stylesheet" media="print" onload="this.media='all'">
-    <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"></noscript>
+    <noscript>
+        <link
+            href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+            rel="stylesheet">
+    </noscript>
 
     <!-- Font Awesome: non-blocking -->
-    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></noscript>
+    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" as="style"
+        onload="this.onload=null;this.rel='stylesheet'">
+    <noscript>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    </noscript>
 
     <!-- AOS CSS: non-blocking -->
-    <link rel="preload" href="https://unpkg.com/aos@2.3.1/dist/aos.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript><link rel="stylesheet" href="https://unpkg.com/aos@2.3.1/dist/aos.css"></noscript>
+    <link rel="preload" href="https://unpkg.com/aos@2.3.1/dist/aos.css" as="style"
+        onload="this.onload=null;this.rel='stylesheet'">
+    <noscript>
+        <link rel="stylesheet" href="https://unpkg.com/aos@2.3.1/dist/aos.css">
+    </noscript>
 
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
@@ -400,8 +410,15 @@
 
         /* hero entry animation (replacing AOS to avoid FOUC/LCP delay) */
         @keyframes hero-fade-up {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         .hero-text-col {
@@ -410,7 +427,8 @@
 
         .hero-visual {
             animation: hero-fade-up 0.8s ease-out 0.2s forwards;
-            opacity: 0; /* Wait for animation */
+            opacity: 0;
+            /* Wait for animation */
         }
 
         /* marquee */
@@ -854,14 +872,15 @@
                 <a href="#how-it-works">How it Works</a>
                 <a href="/static/manuals/CareStance_User_Manual.pdf" target="_blank">User Manual</a>
                 {% if user %}
-                    <a href="/dashboard">Dashboard</a>
-                    <a href="/logout" class="nav-logout">Log Out</a>
+                <a href="/dashboard">Dashboard</a>
+                <a href="/logout" class="nav-logout">Log In</a>
                 {% else %}
-                    <a href="/login">Log In</a>
-                    <a href="/signup" class="btn-nav-cta">Get Started</a>
+                <a href="/login">Log In</a>
+                <a href="/signup" class="btn-nav-cta">Get Started</a>
                 {% endif %}
             </div>
-            <button class="mobile-toggle" id="menu-toggle" aria-label="Menu"><i class="fa-solid fa-bars" id="menu-icon"></i></button>
+            <button class="mobile-toggle" id="menu-toggle" aria-label="Menu"><i class="fa-solid fa-bars"
+                    id="menu-icon"></i></button>
         </div>
         <div class="mobile-menu" id="mobile-menu">
             <a href="#students" onclick="closeMobile()">For Students</a>
@@ -869,11 +888,11 @@
             <a href="#how-it-works" onclick="closeMobile()">How it Works</a>
             <a href="/static/manuals/CareStance_User_Manual.pdf" target="_blank">User Manual</a>
             {% if user %}
-                <a href="/dashboard" onclick="closeMobile()">Dashboard</a>
-                <a href="/logout" onclick="closeMobile()">Log Out</a>
+            <a href="/dashboard" onclick="closeMobile()">Dashboard</a>
+            <a href="/logout" onclick="closeMobile()">Log In</a>
             {% else %}
-                <a href="/login" onclick="closeMobile()">Log In</a>
-                <a href="/signup" class="btn-mobile-cta" onclick="closeMobile()">Get Started Free →</a>
+            <a href="/login" onclick="closeMobile()">Log In</a>
+            <a href="/signup" class="btn-mobile-cta" onclick="closeMobile()">Get Started Free →</a>
             {% endif %}
         </div>
     </nav>
@@ -885,12 +904,15 @@
                 <div class="hero-text-col">
                     <div class="hero-badge"><i class="fa-regular fa-compass"></i> AI-Powered Clarity</div>
                     <h1 class="hero-title">Shape a career <span class="text-gradient">you'll love</span> for life.</h1>
-                    <p class="hero-desc">CareStance blends intelligent psychometrics and real human guidance to unlock your potential. No more guesswork.</p>
+                    <p class="hero-desc">CareStance blends intelligent psychometrics and real human guidance to unlock
+                        your potential. No more guesswork.</p>
                     <div class="hero-actions" style="display: flex; gap: 1rem; flex-wrap: wrap;">
-                        <a href="#students" class="btn-primary">I'm a Student <i class="fa-solid fa-arrow-right"></i></a>
+                        <a href="#students" class="btn-primary">I'm a Student <i
+                                class="fa-solid fa-arrow-right"></i></a>
                         <a href="#counsellors" class="btn-secondary">I'm a Counsellor</a>
                     </div>
-                    <div class="hero-social-proof" style="margin-top: 2rem; display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+                    <div class="hero-social-proof"
+                        style="margin-top: 2rem; display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
                         <div style="display: flex; gap: 0.3rem;">👩‍🎓👨‍🎓👩‍💻👨‍💻</div>
                         <span style="color: var(--text-muted);">Trusted by 12,000+ students</span>
                     </div>
@@ -901,19 +923,16 @@
                         <!-- LCP IMAGE: eager + high priority + local WebP = fast paint -->
                         <picture>
                             <source srcset="/static/images/hero.webp" type="image/webp">
-                            <img
-                                src="/static/images/hero.webp"
-                                alt="Career clarity at a glance"
-                                width="800"
-                                height="534"
-                                loading="eager"
-                                fetchpriority="high"
-                                decoding="sync"
-                            >
+                            <img src="/static/images/hero.webp" alt="Career clarity at a glance" width="800"
+                                height="534" loading="eager" fetchpriority="high" decoding="sync">
                         </picture>
                     </div>
-                    <div class="float-chip float-chip-1 glass"><i class="fa-regular fa-lightbulb" style="color: #d97706;"></i><span><strong>Match score 96%</strong><br>UX Designer</span></div>
-                    <div class="float-chip float-chip-2 glass"><i class="fa-regular fa-calendar"></i><span><strong>Session today</strong><br>with Priya Sharma</span></div>
+                    <div class="float-chip float-chip-1 glass"><i class="fa-regular fa-lightbulb"
+                            style="color: #d97706;"></i><span><strong>Match score 96%</strong><br>UX Designer</span>
+                    </div>
+                    <div class="float-chip float-chip-2 glass"><i
+                            class="fa-regular fa-calendar"></i><span><strong>Session today</strong><br>with Priya
+                            Sharma</span></div>
                 </div>
             </div>
         </div>
@@ -921,20 +940,22 @@
 
     <!-- Marquee -->
     <section class="marquee-section">
-        <div style="overflow:hidden;"><div class="marquee-track">
-            <span class="marquee-item"><i class="fa-regular fa-building"></i> HARVARD</span>
-            <span class="marquee-item"><i class="fa-regular fa-building"></i> STANFORD</span>
-            <span class="marquee-item"><i class="fa-regular fa-building"></i> MIT</span>
-            <span class="marquee-item"><i class="fa-regular fa-building"></i> OXFORD</span>
-            <span class="marquee-item"><i class="fa-regular fa-building"></i> IIT DELHI</span>
-            <span class="marquee-item"><i class="fa-regular fa-building"></i> NUS</span>
-            <span class="marquee-item"><i class="fa-regular fa-building"></i> HARVARD</span>
-            <span class="marquee-item"><i class="fa-regular fa-building"></i> STANFORD</span>
-            <span class="marquee-item"><i class="fa-regular fa-building"></i> MIT</span>
-            <span class="marquee-item"><i class="fa-regular fa-building"></i> OXFORD</span>
-            <span class="marquee-item"><i class="fa-regular fa-building"></i> IIT DELHI</span>
-            <span class="marquee-item"><i class="fa-regular fa-building"></i> NUS</span>
-        </div></div>
+        <div style="overflow:hidden;">
+            <div class="marquee-track">
+                <span class="marquee-item"><i class="fa-regular fa-building"></i> HARVARD</span>
+                <span class="marquee-item"><i class="fa-regular fa-building"></i> STANFORD</span>
+                <span class="marquee-item"><i class="fa-regular fa-building"></i> MIT</span>
+                <span class="marquee-item"><i class="fa-regular fa-building"></i> OXFORD</span>
+                <span class="marquee-item"><i class="fa-regular fa-building"></i> IIT DELHI</span>
+                <span class="marquee-item"><i class="fa-regular fa-building"></i> NUS</span>
+                <span class="marquee-item"><i class="fa-regular fa-building"></i> HARVARD</span>
+                <span class="marquee-item"><i class="fa-regular fa-building"></i> STANFORD</span>
+                <span class="marquee-item"><i class="fa-regular fa-building"></i> MIT</span>
+                <span class="marquee-item"><i class="fa-regular fa-building"></i> OXFORD</span>
+                <span class="marquee-item"><i class="fa-regular fa-building"></i> IIT DELHI</span>
+                <span class="marquee-item"><i class="fa-regular fa-building"></i> NUS</span>
+            </div>
+        </div>
     </section>
 
     <!-- Students Section with START FOR FREE -->
@@ -942,36 +963,55 @@
         <div class="container">
             <div class="text-center" data-aos="fade-up">
                 <div class="hero-badge" style="display: inline-flex;">🎓 For Students</div>
-                <h2 class="hero-title" style="font-size: clamp(1.8rem, 5vw, 2.8rem);">Navigate your future with <span class="text-gradient">confidence</span></h2>
-                <p class="hero-desc" style="max-width: 600px; margin: 0 auto 1rem;">AI-driven insights + human coaching = the career you deserve.</p>
+                <h2 class="hero-title" style="font-size: clamp(1.8rem, 5vw, 2.8rem);">Navigate your future with <span
+                        class="text-gradient">confidence</span></h2>
+                <p class="hero-desc" style="max-width: 600px; margin: 0 auto 1rem;">AI-driven insights + human coaching
+                    = the career you deserve.</p>
             </div>
             <div class="bento-grid">
                 <div class="bento-card bento-1" data-aos="fade-up">
-                    <div><div class="bento-icon"><i class="fa-regular fa-message"></i></div>
-                    <h3>Psychometric AI Engine</h3>
-                    <p>Deep analysis across 50+ cognitive and emotional dimensions — reveals your natural strengths.</p>
-                    <div class="free-badge">✨ Free assessment included</div></div>
-                    <img src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&q=80&w=400" style="border-radius: 1rem; margin-top: 1.5rem; width: 100%; height: auto; max-height: 140px; object-fit: cover;" alt="Psychometric Analysis" loading="lazy" width="400" height="140">
-</div>
+                    <div>
+                        <div class="bento-icon"><i class="fa-regular fa-message"></i></div>
+                        <h3>Psychometric AI Engine</h3>
+                        <p>Deep analysis across 50+ cognitive and emotional dimensions — reveals your natural strengths.
+                        </p>
+                        <div class="free-badge">✨ Free assessment included</div>
+                    </div>
+                    <img src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&q=80&w=400"
+                        style="border-radius: 1rem; margin-top: 1.5rem; width: 100%; height: auto; max-height: 140px; object-fit: cover;"
+                        alt="Psychometric Analysis" loading="lazy" width="400" height="140">
+                </div>
                 <div class="bento-card bento-2" data-aos="fade-up" data-aos-delay="50">
-                    <div><h3>🎥 Video Counselling</h3><p>Book 1-on-1 with top experts, HD sessions, instant booking.</p></div>
-                    <div style="background: var(--primary-soft); width: 54px; height: 54px; border-radius: 2rem; display: flex; align-items: center; justify-content: center;"><i class="fa-solid fa-video" style="color: var(--primary);"></i></div>
+                    <div>
+                        <h3>🎥 Video Counselling</h3>
+                        <p>Book 1-on-1 with top experts, HD sessions, instant booking.</p>
+                    </div>
+                    <div
+                        style="background: var(--primary-soft); width: 54px; height: 54px; border-radius: 2rem; display: flex; align-items: center; justify-content: center;">
+                        <i class="fa-solid fa-video" style="color: var(--primary);"></i></div>
                 </div>
                 <div class="bento-card" data-aos="fade-up" data-aos-delay="100">
                     <div class="stat-number">98%</div>
                     <div>Accuracy rate</div>
-                    <div class="progress-bar"><div class="progress-fill"></div></div>
+                    <div class="progress-bar">
+                        <div class="progress-fill"></div>
+                    </div>
                     <p class="free-badge" style="background: var(--primary);">Verified by 10k+ students</p>
                 </div>
                 <div class="bento-card" data-aos="fade-up" data-aos-delay="150">
-                    <div class="bento-icon" style="background: #fef3c7;"><i class="fa-regular fa-file-pdf" style="color: #b45309;"></i></div>
+                    <div class="bento-icon" style="background: #fef3c7;"><i class="fa-regular fa-file-pdf"
+                            style="color: #b45309;"></i></div>
                     <h3>Detailed Roadmap</h3>
                     <p>Download your 20-page personalized career PDF report.</p>
-                    <a href="/signup" class="btn-outline" style="margin-top: 1rem; padding: 0.5rem 1rem; font-size: 0.8rem; display: inline-flex;">Start for Free →</a>
+                    <a href="/signup" class="btn-outline"
+                        style="margin-top: 1rem; padding: 0.5rem 1rem; font-size: 0.8rem; display: inline-flex;">Start
+                        for Free →</a>
                 </div>
             </div>
             <div class="text-center" style="margin-top: 2.5rem;" data-aos="fade-up">
-                <a href="/signup" class="btn-primary" style="background: var(--gradient-warm); box-shadow: 0 8px 20px rgba(217,119,6,0.2);">✨ Start free assessment — no credit card needed</a>
+                <a href="/signup" class="btn-primary"
+                    style="background: var(--gradient-warm); box-shadow: 0 8px 20px rgba(217,119,6,0.2);">✨ Start free
+                    assessment — no credit card needed</a>
             </div>
         </div>
     </section>
@@ -982,20 +1022,40 @@
             <div class="counsellors-grid">
                 <div data-aos="fade-right">
                     <div class="hero-badge" style="background: #e9e2d4;">👥 For Counsellors</div>
-                    <h2 class="hero-title" style="font-size: clamp(1.8rem, 4vw, 2.4rem);">Grow your practice <br><span style="color: var(--primary);">seamlessly</span></h2>
-                    <p>All-in-one dashboard: manage bookings, video sessions, earnings and analytics. Reach students globally.</p>
+                    <h2 class="hero-title" style="font-size: clamp(1.8rem, 4vw, 2.4rem);">Grow your practice <br><span
+                            style="color: var(--primary);">seamlessly</span></h2>
+                    <p>All-in-one dashboard: manage bookings, video sessions, earnings and analytics. Reach students
+                        globally.</p>
                     <ul class="feature-list">
-                        <li><i class="fa-regular fa-circle-check" style="color: var(--secondary);"></i> Global verified student base</li>
-                        <li><i class="fa-regular fa-circle-check" style="color: var(--secondary);"></i> Automated calendar & Stripe payouts</li>
-                        <li><i class="fa-regular fa-circle-check" style="color: var(--secondary);"></i> Session recordings & insights</li>
+                        <li><i class="fa-regular fa-circle-check" style="color: var(--secondary);"></i> Global verified
+                            student base</li>
+                        <li><i class="fa-regular fa-circle-check" style="color: var(--secondary);"></i> Automated
+                            calendar & Stripe payouts</li>
+                        <li><i class="fa-regular fa-circle-check" style="color: var(--secondary);"></i> Session
+                            recordings & insights</li>
                     </ul>
                     <a href="/signup" class="btn-outline">Apply as Counsellor →</a>
                 </div>
                 <div class="dashboard-card" data-aos="fade-left">
                     <div class="dashboard-inner">
-                        <div style="display: flex; justify-content: space-between; flex-wrap: wrap;"><span class="font-display" style="font-weight: 700;">Counsellor Hub</span><span style="background: var(--primary-soft); padding: 0.2rem 0.7rem; border-radius: 2rem; font-size: 0.7rem;">● Active</span></div>
-                        <div class="session-card"><div><strong>Alex Rivera</strong><div style="font-size: 0.75rem;">Today 2:00 PM</div></div><button class="btn-primary" style="padding: 0.3rem 1rem; font-size: 0.75rem;">Join</button></div>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1rem 0;"><div style="background: var(--bg-soft); padding: 1rem; border-radius: 1rem;"><div>Total earnings</div><strong style="font-size: 1.8rem;">$1,240</strong></div><div style="background: var(--bg-soft); padding: 1rem; border-radius: 1rem;"><div>Students helped</div><strong style="font-size: 1.8rem;">48</strong></div></div>
+                        <div style="display: flex; justify-content: space-between; flex-wrap: wrap;"><span
+                                class="font-display" style="font-weight: 700;">Counsellor Hub</span><span
+                                style="background: var(--primary-soft); padding: 0.2rem 0.7rem; border-radius: 2rem; font-size: 0.7rem;">●
+                                Active</span></div>
+                        <div class="session-card">
+                            <div><strong>Alex Rivera</strong>
+                                <div style="font-size: 0.75rem;">Today 2:00 PM</div>
+                            </div><button class="btn-primary"
+                                style="padding: 0.3rem 1rem; font-size: 0.75rem;">Join</button>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1rem 0;">
+                            <div style="background: var(--bg-soft); padding: 1rem; border-radius: 1rem;">
+                                <div>Total earnings</div><strong style="font-size: 1.8rem;">$1,240</strong>
+                            </div>
+                            <div style="background: var(--bg-soft); padding: 1rem; border-radius: 1rem;">
+                                <div>Students helped</div><strong style="font-size: 1.8rem;">48</strong>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1008,9 +1068,27 @@
             <div class="hero-badge" style="display: inline-flex;">🔍 The Process</div>
             <h2 class="hero-title">Three steps to <span class="text-gradient">clarity</span></h2>
             <div class="steps-grid">
-                <div class="step-card" data-aos="fade-up"><div class="step-number">01</div><div class="bento-icon" style="background: var(--primary-soft);"><i class="fa-regular fa-pen-to-square"></i></div><h3>Take assessment</h3><p>20-minute scenario-based evaluation. Zero pressure, pure insight.</p></div>
-                <div class="step-card" data-aos="fade-up" data-aos-delay="100"><div class="step-number">02</div><div class="bento-icon" style="background: var(--primary-soft);"><i class="fa-regular fa-chart-line"></i></div><h3>AI deep analysis</h3><p>Matches 5000+ careers, reveals top 3 paths with confidence score.</p></div>
-                <div class="step-card" data-aos="fade-up" data-aos-delay="200"><div class="step-number">03</div><div class="bento-icon" style="background: var(--primary-soft);"><i class="fa-regular fa-calendar-check"></i></div><h3>Plan with expert</h3><p>Human-led roadmap, actionable milestones & resources.</p></div>
+                <div class="step-card" data-aos="fade-up">
+                    <div class="step-number">01</div>
+                    <div class="bento-icon" style="background: var(--primary-soft);"><i
+                            class="fa-regular fa-pen-to-square"></i></div>
+                    <h3>Take assessment</h3>
+                    <p>20-minute scenario-based evaluation. Zero pressure, pure insight.</p>
+                </div>
+                <div class="step-card" data-aos="fade-up" data-aos-delay="100">
+                    <div class="step-number">02</div>
+                    <div class="bento-icon" style="background: var(--primary-soft);"><i
+                            class="fa-regular fa-chart-line"></i></div>
+                    <h3>AI deep analysis</h3>
+                    <p>Matches 5000+ careers, reveals top 3 paths with confidence score.</p>
+                </div>
+                <div class="step-card" data-aos="fade-up" data-aos-delay="200">
+                    <div class="step-number">03</div>
+                    <div class="bento-icon" style="background: var(--primary-soft);"><i
+                            class="fa-regular fa-calendar-check"></i></div>
+                    <h3>Plan with expert</h3>
+                    <p>Human-led roadmap, actionable milestones & resources.</p>
+                </div>
             </div>
         </div>
     </section>
@@ -1018,12 +1096,39 @@
     <!-- FAQ -->
     <section class="faq-section">
         <div class="container">
-            <div class="text-center"><h2 class="hero-title">Frequently asked</h2><p>Everything you need to know</p></div>
+            <div class="text-center">
+                <h2 class="hero-title">Frequently asked</h2>
+                <p>Everything you need to know</p>
+            </div>
             <div class="faq-list" style="max-width: 720px; margin: 2rem auto;">
-                <div class="faq-item"><button class="faq-trigger" onclick="toggleFaq(this)">Is the assessment free? <span><i class="fa-solid fa-chevron-down"></i></span></button><div class="faq-body"><div class="faq-body-inner">Yes! The core personality & aptitude assessment is 100% free. Detailed PDF reports and counselling sessions are optional paid upgrades.</div></div></div>
-                <div class="faq-item"><button class="faq-trigger" onclick="toggleFaq(this)">How do counsellors get paid? <span><i class="fa-solid fa-chevron-down"></i></span></button><div class="faq-body"><div class="faq-body-inner">Weekly Stripe payouts. CareStance takes only 10% platform fee — you keep 90%.</div></div></div>
-                <div class="faq-item"><button class="faq-trigger" onclick="toggleFaq(this)">Can working professionals use this? <span><i class="fa-solid fa-chevron-down"></i></span></button><div class="faq-body"><div class="faq-body-inner">Absolutely! Career pivot module for professionals seeking industry shifts or growth.</div></div></div>
-                <div class="faq-item"><button class="faq-trigger" onclick="toggleFaq(this)">How accurate is AI? <span><i class="fa-solid fa-chevron-down"></i></span></button><div class="faq-body"><div class="faq-body-inner">98% validation rate across tracked students over 12 months. Continuously learning.</div></div></div>
+                <div class="faq-item"><button class="faq-trigger" onclick="toggleFaq(this)">Is the assessment free?
+                        <span><i class="fa-solid fa-chevron-down"></i></span></button>
+                    <div class="faq-body">
+                        <div class="faq-body-inner">Yes! The core personality & aptitude assessment is 100% free.
+                            Detailed PDF reports and counselling sessions are optional paid upgrades.</div>
+                    </div>
+                </div>
+                <div class="faq-item"><button class="faq-trigger" onclick="toggleFaq(this)">How do counsellors get paid?
+                        <span><i class="fa-solid fa-chevron-down"></i></span></button>
+                    <div class="faq-body">
+                        <div class="faq-body-inner">Weekly Stripe payouts. CareStance takes only 10% platform fee — you
+                            keep 90%.</div>
+                    </div>
+                </div>
+                <div class="faq-item"><button class="faq-trigger" onclick="toggleFaq(this)">Can working professionals
+                        use this? <span><i class="fa-solid fa-chevron-down"></i></span></button>
+                    <div class="faq-body">
+                        <div class="faq-body-inner">Absolutely! Career pivot module for professionals seeking industry
+                            shifts or growth.</div>
+                    </div>
+                </div>
+                <div class="faq-item"><button class="faq-trigger" onclick="toggleFaq(this)">How accurate is AI? <span><i
+                                class="fa-solid fa-chevron-down"></i></span></button>
+                    <div class="faq-body">
+                        <div class="faq-body-inner">98% validation rate across tracked students over 12 months.
+                            Continuously learning.</div>
+                    </div>
+                </div>
             </div>
         </div>
     </section>
@@ -1033,8 +1138,10 @@
         <div class="container">
             <div class="cta-card" data-aos="zoom-in">
                 <h2 style="font-size: clamp(1.8rem, 4vw, 2.5rem); font-weight: 800;">Start your journey today</h2>
-                <p style="margin: 1rem auto; max-width: 480px;">Join 50k+ students and find your true calling — no risk, just progress.</p>
-                <a href="/signup" class="btn-primary" style="background: white; color: var(--primary); box-shadow: none;">Get started free →</a>
+                <p style="margin: 1rem auto; max-width: 480px;">Join 50k+ students and find your true calling — no risk,
+                    just progress.</p>
+                <a href="/signup" class="btn-primary"
+                    style="background: white; color: var(--primary); box-shadow: none;">Get started free →</a>
             </div>
         </div>
     </section>
@@ -1043,33 +1150,65 @@
     <footer>
         <div class="container">
             <div class="footer-grid">
-                <div><div class="footer-logo"><picture><source srcset="/static/images/image.webp" type="image/webp"><img src="/static/images/image.png" height="32" alt="CareStance Logo" loading="lazy"></picture><span class="footer-logo-text">CareStance</span></div><p style="margin: 1rem 0;">AI + human career clarity platform.</p>
+                <div>
+                    <div class="footer-logo">
+                        <picture>
+                            <source srcset="/static/images/image.webp" type="image/webp"><img
+                                src="/static/images/image.png" height="32" alt="CareStance Logo" loading="lazy">
+                        </picture><span class="footer-logo-text">CareStance</span>
+                    </div>
+                    <p style="margin: 1rem 0;">AI + human career clarity platform.</p>
                     <div class="social-links">
-                        <a href="https://www.instagram.com/carestance.in/" target="_blank" rel="noopener" class="social-btn" title="Follow us on Instagram"><i class="fa-brands fa-instagram"></i></a>
-                        <a href="https://www.linkedin.com/company/carestance" target="_blank" rel="noopener" class="social-btn" title="Follow us on LinkedIn"><i class="fa-brands fa-linkedin-in"></i></a>
+                        <a href="https://www.instagram.com/carestance.in/" target="_blank" rel="noopener"
+                            class="social-btn" title="Follow us on Instagram"><i class="fa-brands fa-instagram"></i></a>
+                        <a href="https://www.linkedin.com/company/carestance" target="_blank" rel="noopener"
+                            class="social-btn" title="Follow us on LinkedIn"><i
+                                class="fa-brands fa-linkedin-in"></i></a>
                     </div>
                 </div>
-                <div><div class="footer-col-title">Platform</div><ul style="list-style: none;"><li><a href="#students" style="color:#ccc; text-decoration: none;">Students</a></li><li><a href="#counsellors" style="color:#ccc; text-decoration: none;">Counsellors</a></li></ul></div>
-                <div><div class="footer-col-title">Company</div><ul style="list-style: none;"><li><a href="/founders" style="color:#ccc; text-decoration: none;">Founders</a></li><li><a href="/articles" style="color:#ccc; text-decoration: none;">Articles</a></li><li><a href="mailto:contact@carestance.me" style="color:#ccc; text-decoration: none;">Contact</a></li></ul></div>
-                <div><div class="footer-col-title">Legal</div><ul style="list-style: none;"><li><a href="/privacy" style="color:#ccc; text-decoration: none;">Privacy</a></li><li><a href="/terms" style="color:#ccc; text-decoration: none;">Terms</a></li></ul></div>
+                <div>
+                    <div class="footer-col-title">Platform</div>
+                    <ul style="list-style: none;">
+                        <li><a href="#students" style="color:#ccc; text-decoration: none;">Students</a></li>
+                        <li><a href="#counsellors" style="color:#ccc; text-decoration: none;">Counsellors</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <div class="footer-col-title">Company</div>
+                    <ul style="list-style: none;">
+                        <li><a href="/founders" style="color:#ccc; text-decoration: none;">Founders</a></li>
+                        <li><a href="/articles" style="color:#ccc; text-decoration: none;">Articles</a></li>
+                        <li><a href="mailto:contact@carestance.me"
+                                style="color:#ccc; text-decoration: none;">Contact</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <div class="footer-col-title">Legal</div>
+                    <ul style="list-style: none;">
+                        <li><a href="/privacy" style="color:#ccc; text-decoration: none;">Privacy</a></li>
+                        <li><a href="/terms" style="color:#ccc; text-decoration: none;">Terms</a></li>
+                    </ul>
+                </div>
             </div>
-            <div class="footer-bottom" style="border-top: 1px solid #333; margin-top: 2rem; padding-top: 1.5rem; text-align: center;">© 2026 CareStance — Empower your career.</div>
+            <div class="footer-bottom"
+                style="border-top: 1px solid #333; margin-top: 2rem; padding-top: 1.5rem; text-align: center;">© 2026
+                CareStance — Empower your career.</div>
         </div>
     </footer>
 
     <script>
         // Load AOS after page is interactive
-        window.addEventListener('load', function() {
+        window.addEventListener('load', function () {
             var s = document.createElement('script');
             s.src = 'https://unpkg.com/aos@2.3.1/dist/aos.js';
-            s.onload = function() { AOS.init({ once: true, duration: 700 }); };
+            s.onload = function () { AOS.init({ once: true, duration: 700 }); };
             document.head.appendChild(s);
         });
         const nav = document.getElementById('main-nav');
         window.addEventListener('scroll', () => { nav.classList.toggle('scrolled', window.scrollY > 30); });
         const toggleBtn = document.getElementById('menu-toggle'), mobileMenu = document.getElementById('mobile-menu'), icon = document.getElementById('menu-icon');
         toggleBtn.addEventListener('click', () => { const open = mobileMenu.classList.toggle('open'); icon.className = open ? 'fa-solid fa-xmark' : 'fa-solid fa-bars'; });
-        window.closeMobile = () => { mobileMenu.classList.remove('open'); if(icon) icon.className = 'fa-solid fa-bars'; };
+        window.closeMobile = () => { mobileMenu.classList.remove('open'); if (icon) icon.className = 'fa-solid fa-bars'; };
         window.toggleFaq = (btn) => {
             const item = btn.closest('.faq-item');
             const body = item.querySelector('.faq-body');
