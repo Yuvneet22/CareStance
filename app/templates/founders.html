@@ -3,7 +3,7 @@
 {% block title %}Founders - CareStance{% endblock %}
 
 {% block content %}
-<!-- Custom Styles for Dark Ocean Animations -->
+<!-- Custom Styles for Premium Light Animations -->
 <style>
     @keyframes float {
 
@@ -25,35 +25,48 @@
         animation: float 6s ease-in-out infinite 3s;
     }
 
-    .ocean-gradient {
-        background: radial-gradient(circle at 50% -20%, #004e92 0%, #000428 60%, #00010a 100%);
+    .founder-card {
+        background: rgba(255, 255, 255, 0.85);
+        backdrop-filter: blur(20px);
+        border: 1px solid #d9f0ef;
+        transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
-    .biolume-cyan {
-        box-shadow: 0 0 40px -10px rgba(6, 182, 212, 0.5);
+    .founder-card:hover {
+        border-color: #1b5e5f;
+        box-shadow: 0 25px 60px -15px rgba(11, 59, 60, 0.15);
+        transform: translateY(-4px);
     }
 
-    .biolume-indigo {
-        box-shadow: 0 0 40px -10px rgba(99, 102, 241, 0.5);
+    .avatar-glow-1 {
+        box-shadow: 0 0 40px -10px rgba(11, 59, 60, 0.3);
     }
 
-    .ai-style-change-1.tracking-widest {
-        color: cyan !important;
+    .avatar-glow-2 {
+        box-shadow: 0 0 40px -10px rgba(217, 150, 6, 0.3);
     }
 </style>
 
-<div class="min-h-screen ocean-gradient py-20 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+<div class="min-h-screen py-20 px-4 sm:px-6 lg:px-8 relative overflow-hidden"
+    style="background: linear-gradient(135deg, #fefcf5 0%, #d9f0ef 50%, #fef3c7 100%);">
 
-    <!-- Deep Sea Decorative Elements (Bubbles/Orbs) -->
-    <div class="absolute top-20 left-10 w-64 h-64 bg-cyan-500/10 rounded-full blur-[100px] pointer-events-none"></div>
-    <div class="absolute bottom-20 right-10 w-96 h-96 bg-blue-600/10 rounded-full blur-[120px] pointer-events-none">
-    </div>
+    <!-- Decorative Elements -->
+    <div class="absolute top-20 left-10 w-64 h-64 rounded-full blur-[100px] pointer-events-none"
+        style="background: rgba(11, 59, 60, 0.08);"></div>
+    <div class="absolute bottom-20 right-10 w-96 h-96 rounded-full blur-[120px] pointer-events-none"
+        style="background: rgba(217, 150, 6, 0.08);"></div>
 
     <!-- Heading Section -->
     <div class="text-center mb-24 relative z-10" data-aos="fade-down">
-        <h1 class="text-5xl md:text-7xl font-black text-white mb-6 tracking-tighter inline-block">
-            Meet Our <span
-                class="text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-blue-400 to-emerald-400">Founders</span>
+        <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border mb-6"
+            style="background: rgba(11, 59, 60, 0.05); border-color: #a8ded9;">
+            <span class="w-2 h-2 rounded-full animate-pulse" style="background: #1b5e5f;"></span>
+            <span class="text-xs font-bold uppercase tracking-widest" style="color: #0b3b3c;">The People Behind
+                CareStance</span>
+        </div>
+        <h1 class="text-5xl md:text-7xl font-black mb-6 tracking-tighter inline-block" style="color: #0b3b3c;">
+            Meet Our <span class="text-transparent bg-clip-text"
+                style="background-image: linear-gradient(135deg, #1b5e5f, #d97706); -webkit-background-clip: text;">Founders</span>
         </h1>
     </div>
 
@@ -62,16 +75,15 @@
 
         <!-- Chairman - Yuvneet Sapra -->
         <div class="group animate-float" data-aos="fade-up" data-aos-delay="100">
-            <div
-                class="relative bg-slate-900/40 backdrop-blur-3xl border border-white/10 rounded-[2.5rem] p-10 biolume-cyan transition-all duration-500 hover:border-cyan-500/50 hover:bg-slate-900/60">
+            <div class="founder-card rounded-[2.5rem] p-10 avatar-glow-1">
 
                 <!-- Avatar with Ripple -->
                 <div class="relative w-48 h-48 mx-auto mb-8">
-                    <div
-                        class="absolute inset-0 bg-cyan-500 rounded-3xl rotate-6 group-hover:rotate-12 transition duration-500 opacity-20">
-                    </div>
-                    <div class="relative w-full h-full rounded-3xl overflow-hidden ring-4 ring-cyan-500/20 shadow-2xl">
-                        <img src="https://ui-avatars.com/api/?name=Yuvneet+Sapra&background=082f49&color=22d3ee&size=512"
+                    <div class="absolute inset-0 rounded-3xl rotate-6 group-hover:rotate-12 transition duration-500 opacity-20"
+                        style="background: #0b3b3c;"></div>
+                    <div class="relative w-full h-full rounded-3xl overflow-hidden shadow-2xl"
+                        style="ring: 4px; border: 4px solid rgba(11, 59, 60, 0.15);">
+                        <img src="https://ui-avatars.com/api/?name=Yuvneet+Sapra&background=0b3b3c&color=d9f0ef&size=512"
                             alt="Yuvneet Sapra"
                             class="w-full h-full object-cover scale-110 group-hover:scale-100 transition duration-700">
                     </div>
@@ -79,16 +91,14 @@
 
                 <!-- Info -->
                 <div class="text-center">
-                    <h2 class="text-3xl font-bold text-white tracking-tight">Yuvneet Sapra</h2>
-                    <div
-                        class="inline-block mt-2 px-4 py-1 rounded-full bg-cyan-500/20 border border-cyan-400/40 shadow-[0_0_15px_rgba(34,211,238,0.2)]">
-                        <span
-                            class="ai-style-change-1 text-xs font-bold uppercase tracking-widest leading-none">Chairman
-                            &
-                            Visionary</span>
+                    <h2 class="text-3xl font-bold tracking-tight" style="color: #0b3b3c;">Yuvneet Sapra</h2>
+                    <div class="inline-block mt-2 px-4 py-1 rounded-full"
+                        style="background: #d9f0ef; border: 1px solid #a8ded9;">
+                        <span class="text-xs font-bold uppercase tracking-widest leading-none"
+                            style="color: #0b3b3c;">Chairman & Visionary</span>
                     </div>
 
-                    <p class="text-slate-400 mt-6 leading-relaxed">
+                    <p class="mt-6 leading-relaxed" style="color: #4b5563;">
                         A strategist at heart, Yuvneet bridges the gap between raw potential and professional
                         excellence, steering CareStance toward a decentralized future of talent discovery.
                     </p>
@@ -96,11 +106,17 @@
                     <!-- Socials -->
                     <div class="mt-8 flex justify-center gap-4">
                         <a href="https://www.linkedin.com/in/yuvneet-sapra-a184a0328" target="_blank"
-                            class="p-4 bg-white/5 hover:bg-cyan-500 rounded-2xl text-white transition-all duration-300 group/link">
+                            class="p-4 rounded-2xl transition-all duration-300 group/link"
+                            style="background: #d9f0ef; color: #0b3b3c;"
+                            onmouseover="this.style.background='#0b3b3c'; this.style.color='#ffffff';"
+                            onmouseout="this.style.background='#d9f0ef'; this.style.color='#0b3b3c';">
                             <i class="fab fa-linkedin-in text-xl group-hover/link:scale-110"></i>
                         </a>
                         <a href="https://github.com/Yuvneet22" target="_blank"
-                            class="p-4 bg-white/5 hover:bg-cyan-500 rounded-2xl text-white transition-all duration-300 group/link">
+                            class="p-4 rounded-2xl transition-all duration-300 group/link"
+                            style="background: #d9f0ef; color: #0b3b3c;"
+                            onmouseover="this.style.background='#0b3b3c'; this.style.color='#ffffff';"
+                            onmouseout="this.style.background='#d9f0ef'; this.style.color='#0b3b3c';">
                             <i class="fab fa-github text-xl group-hover/link:scale-110"></i>
                         </a>
                     </div>
@@ -110,17 +126,15 @@
 
         <!-- CEO - Rahul Manchanda -->
         <div class="group animate-float-delayed" data-aos="fade-up" data-aos-delay="300">
-            <div
-                class="relative bg-slate-900/40 backdrop-blur-3xl border border-white/10 rounded-[2.5rem] p-10 biolume-indigo transition-all duration-500 hover:border-indigo-500/50 hover:bg-slate-900/60">
+            <div class="founder-card rounded-[2.5rem] p-10 avatar-glow-2">
 
                 <!-- Avatar with Ripple -->
                 <div class="relative w-48 h-48 mx-auto mb-8">
-                    <div
-                        class="absolute inset-0 bg-indigo-500 rounded-3xl -rotate-6 group-hover:-rotate-12 transition duration-500 opacity-20">
-                    </div>
-                    <div
-                        class="relative w-full h-full rounded-3xl overflow-hidden ring-4 ring-indigo-500/20 shadow-2xl">
-                        <img src="https://ui-avatars.com/api/?name=Rahul+Manchanda&background=1e1b4b&color=818cf8&size=512"
+                    <div class="absolute inset-0 rounded-3xl -rotate-6 group-hover:-rotate-12 transition duration-500 opacity-20"
+                        style="background: #d97706;"></div>
+                    <div class="relative w-full h-full rounded-3xl overflow-hidden shadow-2xl"
+                        style="border: 4px solid rgba(217, 119, 6, 0.15);">
+                        <img src="https://ui-avatars.com/api/?name=Rahul+Manchanda&background=0b3b3c&color=fef3c7&size=512"
                             alt="Rahul Manchanda"
                             class="w-full h-full object-cover scale-110 group-hover:scale-100 transition duration-700">
                     </div>
@@ -128,13 +142,14 @@
 
                 <!-- Info -->
                 <div class="text-center">
-                    <h2 class="text-3xl font-bold text-white tracking-tight">Rahul Manchanda</h2>
-                    <div class="inline-block mt-2 px-4 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20">
-                        <span class="text-indigo-400 text-xs font-bold uppercase tracking-widest">Chief Executive
-                            Officer</span>
+                    <h2 class="text-3xl font-bold tracking-tight" style="color: #0b3b3c;">Rahul Manchanda</h2>
+                    <div class="inline-block mt-2 px-4 py-1 rounded-full"
+                        style="background: #fef3c7; border: 1px solid #fcd34d;">
+                        <span class="text-xs font-bold uppercase tracking-widest" style="color: #92400e;">Chief
+                            Executive Officer</span>
                     </div>
 
-                    <p class="text-slate-400 mt-6 leading-relaxed">
+                    <p class="mt-6 leading-relaxed" style="color: #4b5563;">
                         Rahul translates complex AI architecture into seamless user experiences, scaling CareStance into
                         a global engine that empowers millions to find their true calling.
                     </p>
@@ -142,11 +157,17 @@
                     <!-- Socials -->
                     <div class="mt-8 flex justify-center gap-4">
                         <a href="https://www.linkedin.com/in/rahul-manchanda-3959b120a/" target="_blank"
-                            class="p-4 bg-white/5 hover:bg-indigo-500 rounded-2xl text-white transition-all duration-300 group/link">
+                            class="p-4 rounded-2xl transition-all duration-300 group/link"
+                            style="background: #fef3c7; color: #92400e;"
+                            onmouseover="this.style.background='#d97706'; this.style.color='#ffffff';"
+                            onmouseout="this.style.background='#fef3c7'; this.style.color='#92400e';">
                             <i class="fab fa-linkedin-in text-xl group-hover/link:scale-110"></i>
                         </a>
                         <a href="https://github.com/rahul15-manch" target="_blank"
-                            class="p-4 bg-white/5 hover:bg-indigo-500 rounded-2xl text-white transition-all duration-300 group/link">
+                            class="p-4 rounded-2xl transition-all duration-300 group/link"
+                            style="background: #fef3c7; color: #92400e;"
+                            onmouseover="this.style.background='#d97706'; this.style.color='#ffffff';"
+                            onmouseout="this.style.background='#fef3c7'; this.style.color='#92400e';">
                             <i class="fab fa-github text-xl group-hover/link:scale-110"></i>
                         </a>
                     </div>
@@ -156,17 +177,14 @@
 
     </div>
 
-    <!-- Bottom Wave Divider -->
+    <!-- Bottom decorative wave -->
     <div class="absolute bottom-0 left-0 w-full overflow-hidden leading-[0] transform rotate-180">
         <svg class="relative block w-full h-[100px]" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 1200 120" preserveAspectRatio="none">
             <path
                 d="M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V120H0V95.8C58.47,106.7,118.07,106,176,89.66,231.6,74,281.43,65.13,321.39,56.44Z"
-                class="fill-[#000b18] opacity-50"></path>
+                style="fill: #0b3b3c; opacity: 0.05;"></path>
         </svg>
     </div>
 </div>
-
-<!-- Add FontAwesome if not already in base.html -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 {% endblock %}
