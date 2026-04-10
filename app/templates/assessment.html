@@ -7,7 +7,7 @@
     <div class="bg-white/70 backdrop-blur-xl shadow-2xl rounded-3xl overflow-hidden border border-white/50">
         <div class="w-full bg-slate-100 h-2.5 relative overflow-hidden">
             <div id="progress-bar"
-                class="bg-gradient-to-r from-violet-500 via-purple-500 to-indigo-600 h-2.5 transition-all duration-700 ease-out relative"
+                class="bg-gradient-to-r from-[#0b3b3c] via-[#1b5e5f] to-[#0b3b3c] h-2.5 transition-all duration-700 ease-out relative"
                 style="width: 0%">
                 <div
                     class="absolute top-0 right-0 bottom-0 w-10 bg-white/40 blur-[4px] -skew-x-12 translate-x-full animate-[shimmer_2s_infinite]">
@@ -16,11 +16,11 @@
         </div>
 
         <div
-            class="px-6 py-6 sm:px-8 flex justify-between items-center bg-violet-50/50 border-b border-violet-100 relative">
+            class="px-6 py-6 sm:px-8 flex justify-between items-center bg-[#d9f0ef]/50 border-b border-[#a8ded9] relative">
             <div>
                 <h3 class="text-xl leading-6 font-bold text-slate-800">Career Personality Assessment</h3>
                 <p class="mt-1 max-w-2xl text-sm text-slate-500 font-medium tracking-wide uppercase">Question <span
-                        id="current-step-text" class="text-violet-600 font-bold">1</span> of {{ questions|length }}</p>
+                        id="current-step-text" class="text-[#0b3b3c] font-bold">1</span> of {{ questions|length }}</p>
                 <a href="/assessment/reset" onclick="return confirm('Restart assessment from scratch?')"
                     class="text-[10px] font-bold text-rose-500 uppercase hover:underline mt-1 block">Restart
                     Assessment</a>
@@ -36,7 +36,7 @@
                     </svg>
                 </button>
                 <button type="button" onclick="speakCurrentQuestion()"
-                    class="p-3 rounded-full bg-white text-violet-600 shadow-sm border border-slate-200 hover:bg-violet-50 hover:text-violet-700 transition-all transform hover:scale-105"
+                    class="p-3 rounded-full bg-white text-[#0b3b3c] shadow-sm border border-slate-200 hover:bg-[#d9f0ef] hover:text-[#0b3b3c] transition-all transform hover:scale-105"
                     title="Read Aloud">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
                         stroke="currentColor">
@@ -45,7 +45,7 @@
                     </svg>
                 </button>
                 <button type="button" onclick="togglePauseVoice()" id="pause-btn"
-                    class="p-3 rounded-full bg-white text-violet-600 shadow-sm border border-slate-200 hover:bg-violet-50 hover:text-violet-700 transition-all transform hover:scale-105"
+                    class="p-3 rounded-full bg-white text-[#0b3b3c] shadow-sm border border-slate-200 hover:bg-[#d9f0ef] hover:text-[#0b3b3c] transition-all transform hover:scale-105"
                     title="Pause/Resume Audio">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
                         stroke="currentColor">
@@ -75,7 +75,7 @@
                                 onchange="handleSelection(this)" class="peer sr-only">
 
                             <div
-                                class="h-full rounded-2xl border-2 border-slate-200/60 bg-white/80 overflow-hidden transition-all duration-500 ease-in-out hover:shadow-2xl hover:shadow-violet-200/50 hover:border-violet-300 hover:-translate-y-2 peer-checked:border-emerald-500 peer-checked:ring-4 peer-checked:ring-emerald-100 group">
+                                class="h-full rounded-2xl border-2 border-slate-200/60 bg-white/80 overflow-hidden transition-all duration-500 ease-in-out hover:shadow-2xl hover:shadow-[#d9f0ef] hover:border-[#a8ded9] hover:-translate-y-2 peer-checked:border-emerald-500 peer-checked:ring-4 peer-checked:ring-emerald-100 group">
                                 <div class="aspect-w-16 aspect-h-12 bg-slate-100 relative overflow-hidden">
                                     <img src="{{ opt.image }}" alt="{{ opt.text }}" loading="lazy"
                                         class="object-cover w-full h-full transition-transform duration-700 group-hover:scale-110">
@@ -116,7 +116,7 @@
                     <p class="text-slate-500 mb-8 max-w-md mx-auto">Great job! We've analyzed your responses. Click
                         below to reveal your personality archetype.</p>
                     <button type="submit" id="reveal-btn"
-                        class="w-full sm:w-auto py-4 px-10 rounded-2xl shadow-xl shadow-violet-200/50 text-lg font-bold text-white bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-500 hover:via-purple-500 hover:to-indigo-500 transition-all duration-300 transform hover:scale-105 hover:-translate-y-1 ring-offset-2 focus:ring-4 focus:ring-violet-300 flex items-center justify-center mx-auto min-w-[240px] relative overflow-hidden group">
+                        class="w-full sm:w-auto py-4 px-10 rounded-2xl shadow-xl shadow-[#d9f0ef] text-lg font-bold text-white bg-gradient-to-r from-[#0b3b3c] via-[#1b5e5f] to-[#0b3b3c] hover:from-[#1b5e5f] hover:via-[#0b3b3c] hover:to-[#1b5e5f] transition-all duration-300 transform hover:scale-105 hover:-translate-y-1 ring-offset-2 focus:ring-4 focus:ring-[#a8ded9] flex items-center justify-center mx-auto min-w-[240px] relative overflow-hidden group">
                         <div
                             class="absolute inset-0 bg-white/20 -skew-x-12 -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]">
                         </div>
@@ -132,7 +132,7 @@
                             </svg>
                         </div>
                     </button>
-                    <p id="analyzing-text" class="hidden mt-4 text-violet-600 font-bold animate-pulse">Deep AI Analysis
+                    <p id="analyzing-text" class="hidden mt-4 text-[#0b3b3c] font-bold animate-pulse">Deep AI Analysis
                         in progress... Please wait.</p>
                 </div>
             </form>
@@ -144,12 +144,12 @@
 <div id="talking-buddy" onclick="window.location.href='/chatbot'"
     class="fixed top-24 right-8 z-[100] flex items-center justify-center w-20 h-20 cursor-pointer pointer-events-auto hover:scale-110 transition-transform">
     <!-- Outer Pulse Rings -->
-    <div class="pulse-ring absolute inset-0 rounded-full bg-violet-400 opacity-0"></div>
-    <div class="pulse-ring absolute inset-0 rounded-full bg-indigo-400 opacity-0" style="animation-delay: 0.5s"></div>
+    <div class="pulse-ring absolute inset-0 rounded-full bg-[#1b5e5f] opacity-0"></div>
+    <div class="pulse-ring absolute inset-0 rounded-full bg-[#1b5e5f] opacity-0" style="animation-delay: 0.5s"></div>
 
     <!-- Inner Orb -->
     <div
-        class="buddy-orb relative w-14 h-14 rounded-full bg-gradient-to-br from-violet-600 to-indigo-700 shadow-[0_0_30px_rgba(139,92,246,0.6)] flex items-center justify-center border-2 border-violet-400/30 overflow-hidden">
+        class="buddy-orb relative w-14 h-14 rounded-full bg-gradient-to-br from-[#0b3b3c] to-[#0b3b3c] shadow-[0_0_30px_rgba(139,92,246,0.6)] flex items-center justify-center border-2 border-[#1b5e5f]/30 overflow-hidden">
         <div class="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(255,255,255,0.2),transparent)]"></div>
         <span class="text-3xl z-10">🎓</span>
     </div>

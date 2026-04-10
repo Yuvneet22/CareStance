@@ -5,10 +5,20 @@
 {% block extra_head %}
 <style>
     /* Dashboard page padding & container */
-    main > * { padding: 1.5rem; }
-    @media(min-width: 768px) { main > * { padding: 2rem; } }
+    main>* {
+        padding: 1.5rem;
+    }
 
-    .db-page { max-width: 1280px; margin: 0 auto; }
+    @media(min-width: 768px) {
+        main>* {
+            padding: 2rem;
+        }
+    }
+
+    .db-page {
+        max-width: 1280px;
+        margin: 0 auto;
+    }
 
     /* Override card glass for cream background */
     .db-card {
@@ -17,15 +27,30 @@
         border-radius: 1.5rem;
         box-shadow: var(--shadow-sm);
     }
+
     .db-card-muted {
         background: var(--bg-soft);
         border: 1px solid var(--border-light);
         border-radius: 1.5rem;
     }
-    .db-progress-active { background: var(--gradient-primary) !important; }
-    .db-progress-dot-active { background-color: var(--primary) !important; color: white; }
-    .db-progress-dot-pulse { border-color: var(--primary) !important; color: var(--primary) !important; }
-    .db-next-cta { background: var(--gradient-primary) !important; }
+
+    .db-progress-active {
+        background: var(--gradient-primary) !important;
+    }
+
+    .db-progress-dot-active {
+        background-color: var(--primary) !important;
+        color: white;
+    }
+
+    .db-progress-dot-pulse {
+        border-color: var(--primary) !important;
+        color: var(--primary) !important;
+    }
+
+    .db-next-cta {
+        background: var(--gradient-primary) !important;
+    }
 </style>
 {% endblock %}
 
@@ -34,9 +59,12 @@
 <div class="db-page space-y-8">
 
     <!-- Welcome Header -->
-    <div class="relative overflow-hidden rounded-3xl text-white shadow-2xl" style="background: var(--gradient-primary);">
-        <div class="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 rounded-full opacity-10" style="background: rgba(255,255,255,0.2);"></div>
-        <div class="absolute bottom-0 left-0 -ml-16 -mb-16 w-64 h-64 rounded-full opacity-10" style="background: rgba(217,119,6,0.4);"></div>
+    <div class="relative overflow-hidden rounded-3xl text-white shadow-2xl"
+        style="background: var(--gradient-primary);">
+        <div class="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 rounded-full opacity-10"
+            style="background: rgba(255,255,255,0.2);"></div>
+        <div class="absolute bottom-0 left-0 -ml-16 -mb-16 w-64 h-64 rounded-full opacity-10"
+            style="background: rgba(217,119,6,0.4);"></div>
 
         <div
             class="relative z-10 px-8 py-10 sm:px-12 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
@@ -64,7 +92,8 @@
                     <img src="{{ user.profile_photo if user.profile_photo else 'https://ui-avatars.com/api/?name=' + user.full_name + '&background=random' }}"
                         alt="Profile" class="w-20 h-20 rounded-2xl object-cover border-4 border-white/20 shadow-xl">
                     <button onclick="document.getElementById('photo-upload').click()"
-                        class="absolute -bottom-2 -right-2 text-white p-2 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity" style="background:var(--secondary);">
+                        class="absolute -bottom-2 -right-2 text-white p-2 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                        style="background:var(--secondary);">
                         <i class="fas fa-camera text-xs"></i>
                     </button>
                     <form id="photo-form" action="/profile/upload-photo" method="POST" enctype="multipart/form-data"
@@ -91,7 +120,8 @@
                 <img src="{{ user.profile_photo if user.profile_photo else 'https://ui-avatars.com/api/?name=' + user.full_name + '&background=random' }}"
                     alt="Profile" class="w-20 h-20 rounded-2xl object-cover border-4 border-white/20 shadow-xl">
                 <button onclick="document.getElementById('photo-upload-basic').click()"
-                    class="absolute -bottom-2 -right-2 text-white p-2 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity" style="background:var(--secondary);">
+                    class="absolute -bottom-2 -right-2 text-white p-2 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                    style="background:var(--secondary);">
                     <i class="fas fa-camera text-xs"></i>
                 </button>
                 <form id="photo-form-basic" action="/profile/upload-photo" method="POST" enctype="multipart/form-data"
@@ -110,12 +140,13 @@
 
         <div class="relative">
             <!-- Connecting Line -->
-            <div class="absolute top-1/2 left-0 w-full h-1 bg-slate-200 -translate-y-1/2 rounded-full -z-10"></div>
-            <div class="absolute top-1/2 left-0 h-1 -translate-y-1/2 rounded-full -z-10 transition-all duration-1000 db-progress-active"
-                style="width: {% if assessment.final_answers %}100%{% elif assessment.phase3_answers %}75%{% elif assessment %}50%{% else %}10%{% endif %}">
+            <div class="absolute top-5 left-0 w-full rounded-full"
+                style="height: 6px; background: #e2e8f0; z-index: 1;"></div>
+            <div class="absolute top-5 left-0 rounded-full transition-all duration-1000"
+                style="height: 6px; z-index: 2; background: linear-gradient(to right, #0b3b3c, #1b5e5f); width: {% if assessment.final_answers %}100%{% elif assessment.phase3_answers %}75%{% elif assessment %}50%{% else %}10%{% endif %}">
             </div>
 
-            <div class="flex justify-between items-center w-full">
+            <div class="flex justify-between items-center w-full relative" style="z-index: 5;">
                 <!-- Step 1 -->
                 <div class="flex flex-col items-center gap-3 group cursor-default">
                     <div
@@ -123,7 +154,8 @@
                         {% if assessment %}db-progress-dot-active scale-110{% else %}bg-white text-slate-400 border-slate-200{% endif %}">
                         <i class="fas fa-check"></i>
                     </div>
-                    <p class="text-xs font-bold {% if assessment %}" style="color:var(--primary);">{% else %}text-slate-400">{% endif %}
+                    <p class="text-xs font-bold {% if assessment %}" style="color:var(--primary);">{% else
+                        %}text-slate-400">{% endif %}
                         Basics</p>
                 </div>
 
@@ -131,11 +163,11 @@
                 <div class="flex flex-col items-center gap-3 group">
                     <div
                         class="w-10 h-10 rounded-full flex items-center justify-center border-4 border-white shadow-md transition-all duration-300
-                        {% if assessment.phase3_answers %}bg-violet-600 text-white scale-110{% elif assessment %}bg-white border-violet-600 text-violet-600 animate-pulse{% else %}bg-white text-slate-400 border-slate-200{% endif %}">
+                        {% if assessment.phase3_answers %}bg-[#0b3b3c] text-white scale-110{% elif assessment %}bg-white border-[#0b3b3c] text-[#0b3b3c] animate-pulse{% else %}bg-white text-slate-400 border-slate-200{% endif %}">
                         <i class="fas fa-brain"></i>
                     </div>
                     <p
-                        class="text-xs font-bold {% if assessment.phase3_answers %}text-violet-700{% elif assessment %}text-violet-600{% else %}text-slate-400{% endif %}">
+                        class="text-xs font-bold {% if assessment.phase3_answers %}text-[#0b3b3c]{% elif assessment %}text-[#1b5e5f]{% else %}text-slate-400{% endif %}">
                         Deep Dive</p>
                 </div>
 
@@ -143,11 +175,11 @@
                 <div class="flex flex-col items-center gap-3 group">
                     <div
                         class="w-10 h-10 rounded-full flex items-center justify-center border-4 border-white shadow-md transition-all duration-300
-                        {% if assessment.final_answers %}bg-violet-600 text-white scale-110{% elif assessment.phase3_answers %}bg-white border-violet-600 text-violet-600 animate-pulse{% else %}bg-white text-slate-400 border-slate-200{% endif %}">
+                        {% if assessment.final_answers %}bg-[#0b3b3c] text-white scale-110{% elif assessment.phase3_answers %}bg-white border-[#0b3b3c] text-[#0b3b3c] animate-pulse{% else %}bg-white text-slate-400 border-slate-200{% endif %}">
                         <i class="fas fa-bullseye"></i>
                     </div>
                     <p
-                        class="text-xs font-bold {% if assessment.final_answers %}text-violet-700{% elif assessment.phase3_answers %}text-violet-600{% else %}text-slate-400{% endif %}">
+                        class="text-xs font-bold {% if assessment.final_answers %}text-[#0b3b3c]{% elif assessment.phase3_answers %}text-[#1b5e5f]{% else %}text-slate-400{% endif %}">
                         Final Plan</p>
                 </div>
 
@@ -156,11 +188,11 @@
                     <div
                         class="w-10 h-10 rounded-full flex items-center justify-center border-4 border-white shadow-md transition-all duration-300
                         {% if assessment.final_answers %}bg-emerald-500 text-white animate-bounce{% else %}bg-white text-slate-400 border-slate-200{% endif %}">
-                        <i class="fas fa-user-graduate"></i>
+                        <i class="fas fa-route"></i>
                     </div>
                     <p
                         class="text-xs font-bold {% if assessment.final_answers %}text-emerald-600{% else %}text-slate-400{% endif %}">
-                        Counselling</p>
+                        Career Path</p>
                 </div>
             </div>
         </div>
@@ -169,7 +201,8 @@
     <!-- MAIN CONTENT AREA -->
     {% if not assessment or not assessment.phase_2_category %}
     <!-- STATE 1: NEW USER / START ASSESSMENT -->
-    <div class="db-card-muted border rounded-3xl p-8 sm:p-12 text-center" style="background: linear-gradient(135deg, var(--primary-soft) 0%, #fef3c7 100%); border-color: var(--border-light);">
+    <div class="db-card-muted border rounded-3xl p-8 sm:p-12 text-center"
+        style="background: linear-gradient(135deg, var(--primary-soft) 0%, #fef3c7 100%); border-color: var(--border-light);">
         <div class="max-w-3xl mx-auto mb-12">
             <h2 class="text-3xl font-extrabold text-slate-900 mb-4">Let's Find Your Superpower</h2>
             <p class="text-lg text-slate-600">Select your current academic stage to launch a personalized assessment
@@ -179,19 +212,19 @@
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             <!-- 10th Card -->
             <a href="/assessment/start?class_level=10th"
-                class="group relative bg-white rounded-3xl p-8 shadow-lg shadow-indigo-100 hover:shadow-2xl hover:shadow-indigo-200 transition-all duration-300 border border-slate-100 hover:-translate-y-2 overflow-hidden text-left">
+                class="group relative bg-white rounded-3xl p-8 shadow-lg shadow-[#d9f0ef] hover:shadow-2xl hover:shadow-[#a8ded9] transition-all duration-300 border border-slate-100 hover:-translate-y-2 overflow-hidden text-left">
                 <div
-                    class="absolute top-0 right-0 w-32 h-32 bg-blue-50 rounded-bl-full -mr-8 -mt-8 transition-transform group-hover:scale-110">
+                    class="absolute top-0 right-0 w-32 h-32 bg-[#d9f0ef] rounded-bl-full -mr-8 -mt-8 transition-transform group-hover:scale-110">
                 </div>
                 <div class="relative z-10">
                     <div
-                        class="w-14 h-14 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center text-2xl mb-6 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                        class="w-14 h-14 bg-[#d9f0ef] text-[#0b3b3c] rounded-2xl flex items-center justify-center text-2xl mb-6 group-hover:bg-[#0b3b3c] group-hover:text-white transition-colors">
                         <i class="fas fa-shapes"></i>
                     </div>
                     <h3 class="text-2xl font-bold text-slate-900 mb-2">Class 10</h3>
                     <p class="text-slate-500 text-sm mb-6">Stream selection & foundational strength analysis.</p>
                     <span
-                        class="inline-flex items-center text-blue-600 font-bold group-hover:translate-x-2 transition-transform">
+                        class="inline-flex items-center text-[#0b3b3c] font-bold group-hover:translate-x-2 transition-transform">
                         Start Now <i class="fas fa-arrow-right ml-2"></i>
                     </span>
                 </div>
@@ -199,19 +232,19 @@
 
             <!-- 12th Card -->
             <a href="/assessment/start?class_level=12th"
-                class="group relative bg-white rounded-3xl p-8 shadow-lg shadow-purple-100 hover:shadow-2xl hover:shadow-purple-200 transition-all duration-300 border border-slate-100 hover:-translate-y-2 overflow-hidden text-left">
+                class="group relative bg-white rounded-3xl p-8 shadow-lg shadow-[#d9f0ef] hover:shadow-2xl hover:shadow-[#a8ded9] transition-all duration-300 border border-slate-100 hover:-translate-y-2 overflow-hidden text-left">
                 <div
-                    class="absolute top-0 right-0 w-32 h-32 bg-purple-50 rounded-bl-full -mr-8 -mt-8 transition-transform group-hover:scale-110">
+                    class="absolute top-0 right-0 w-32 h-32 bg-[#fef3c7] rounded-bl-full -mr-8 -mt-8 transition-transform group-hover:scale-110">
                 </div>
                 <div class="relative z-10">
                     <div
-                        class="w-14 h-14 bg-purple-100 text-purple-600 rounded-2xl flex items-center justify-center text-2xl mb-6 group-hover:bg-purple-600 group-hover:text-white transition-colors">
+                        class="w-14 h-14 bg-[#fef3c7] text-[#d97706] rounded-2xl flex items-center justify-center text-2xl mb-6 group-hover:bg-[#d97706] group-hover:text-white transition-colors">
                         <i class="fas fa-compass"></i>
                     </div>
                     <h3 class="text-2xl font-bold text-slate-900 mb-2">Class 12</h3>
                     <p class="text-slate-500 text-sm mb-6">College majors, entrance exams & career mapping.</p>
                     <span
-                        class="inline-flex items-center text-purple-600 font-bold group-hover:translate-x-2 transition-transform">
+                        class="inline-flex items-center text-[#d97706] font-bold group-hover:translate-x-2 transition-transform">
                         Start Now <i class="fas fa-arrow-right ml-2"></i>
                     </span>
                 </div>
@@ -219,19 +252,19 @@
 
             <!-- Grad Card -->
             <a href="/assessment/start?class_level=Above 12th"
-                class="group relative bg-white rounded-3xl p-8 shadow-lg shadow-pink-100 hover:shadow-2xl hover:shadow-pink-200 transition-all duration-300 border border-slate-100 hover:-translate-y-2 overflow-hidden text-left">
+                class="group relative bg-white rounded-3xl p-8 shadow-lg shadow-[#d9f0ef] hover:shadow-2xl hover:shadow-[#a8ded9] transition-all duration-300 border border-slate-100 hover:-translate-y-2 overflow-hidden text-left">
                 <div
-                    class="absolute top-0 right-0 w-32 h-32 bg-pink-50 rounded-bl-full -mr-8 -mt-8 transition-transform group-hover:scale-110">
+                    class="absolute top-0 right-0 w-32 h-32 bg-[#d9f0ef] rounded-bl-full -mr-8 -mt-8 transition-transform group-hover:scale-110">
                 </div>
                 <div class="relative z-10">
                     <div
-                        class="w-14 h-14 bg-pink-100 text-pink-600 rounded-2xl flex items-center justify-center text-2xl mb-6 group-hover:bg-pink-600 group-hover:text-white transition-colors">
+                        class="w-14 h-14 bg-[#d9f0ef] text-[#1b5e5f] rounded-2xl flex items-center justify-center text-2xl mb-6 group-hover:bg-[#1b5e5f] group-hover:text-white transition-colors">
                         <i class="fas fa-briefcase"></i>
                     </div>
                     <h3 class="text-2xl font-bold text-slate-900 mb-2">Graduate</h3>
                     <p class="text-slate-500 text-sm mb-6">Specialization, job market readiness & pivots.</p>
                     <span
-                        class="inline-flex items-center text-pink-600 font-bold group-hover:translate-x-2 transition-transform">
+                        class="inline-flex items-center text-[#1b5e5f] font-bold group-hover:translate-x-2 transition-transform">
                         Start Now <i class="fas fa-arrow-right ml-2"></i>
                     </span>
                 </div>
@@ -247,8 +280,7 @@
         <div class="lg:col-span-2 space-y-6">
 
             <!-- Result Summary Card -->
-            <div
-                class="db-card p-8 flex flex-col md:flex-row gap-8 items-center">
+            <div class="db-card p-8 flex flex-col md:flex-row gap-8 items-center">
                 <div class="flex-shrink-0 relative">
                     <!-- Circular Progress/Score Placeholder -->
                     <div class="w-32 h-32 rounded-full p-1" style="background: var(--gradient-primary);">
@@ -265,7 +297,8 @@
                         goal status.</p>
                     <div class="flex flex-col sm:flex-row flex-wrap gap-3 w-full justify-center md:justify-start">
                         <a href="/assessment/result"
-                            class="w-full sm:w-auto text-center px-6 py-3 text-white rounded-xl font-semibold transition shadow-lg" style="background: var(--gradient-primary);">
+                            class="w-full sm:w-auto text-center px-6 py-3 text-white rounded-xl font-semibold transition shadow-lg"
+                            style="background: var(--gradient-primary);">
                             View Full Report
                         </a>
                         <a href="/chatbot"
@@ -276,10 +309,9 @@
                 </div>
             </div>
 
-            <!-- Scheduled & Completed Sessions Card -->
-            {% if appointments %}
-            <div x-data="{ ratingModal: false, selectedAppt: null }"
-                class="db-card p-8">
+            <!-- Scheduled & Completed Sessions Card (Hidden - Feature Coming Soon) -->
+            {% if false and appointments %}
+            <div x-data="{ ratingModal: false, selectedAppt: null }" class="db-card p-8">
                 <h3 class="text-xl font-bold mb-6 flex items-center gap-2" style="color:var(--text-main);">
                     <i class="fas fa-calendar-alt" style="color:var(--primary);"></i> Your Sessions
                 </h3>
@@ -290,7 +322,7 @@
                         class="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm hover:shadow-md transition-all">
                         <div class="flex justify-between items-start mb-4">
                             <div
-                                class="h-12 w-12 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600">
+                                class="h-12 w-12 rounded-xl bg-[#d9f0ef] flex items-center justify-center text-[#0b3b3c]">
                                 <i class="fas fa-video"></i>
                             </div>
                             <div>
@@ -301,7 +333,7 @@
                                 </div>
                                 {% elif appt.status == 'completed' %}
                                 <span
-                                    class="px-3 py-1 bg-indigo-100 text-indigo-700 text-xs font-bold rounded-full uppercase tracking-wider">Completed</span>
+                                    class="px-3 py-1 bg-[#d9f0ef] text-[#0b3b3c] text-xs font-bold rounded-full uppercase tracking-wider">Completed</span>
                                 {% else %}
                                 <span
                                     class="px-3 py-1 bg-slate-100 text-slate-600 text-xs font-bold rounded-full uppercase tracking-wider">{{
@@ -319,7 +351,7 @@
                         <div id="join-container-{{ appt.id }}">
                             {% if appt.status == 'scheduled' %}
                             <a href="{{ appt.meeting_link }}" target="_blank"
-                                class="inline-flex w-full items-center justify-center px-4 py-3 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700 transition-all transform active:scale-95 shadow-lg shadow-indigo-200">
+                                class="inline-flex w-full items-center justify-center px-4 py-3 bg-[#0b3b3c] text-white text-sm font-bold rounded-xl hover:bg-[#1b5e5f] transition-all transform active:scale-95 shadow-lg shadow-[#d9f0ef]">
                                 Join Video Call
                             </a>
                             <form action="/appointment/delete/{{ appt.id }}" method="POST" class="mt-2"
@@ -332,7 +364,7 @@
                             {% elif appt.status == 'completed' %}
                             {% if not appt.rating_record %}
                             <button @click="ratingModal = true; selectedAppt = {{ appt.id }}"
-                                class="inline-flex w-full items-center justify-center px-4 py-3 bg-violet-600 text-white text-sm font-bold rounded-xl hover:bg-violet-700 transition-all shadow-lg shadow-violet-200">
+                                class="inline-flex w-full items-center justify-center px-4 py-3 bg-[#0b3b3c] text-white text-sm font-bold rounded-xl hover:bg-[#1b5e5f] transition-all shadow-lg shadow-[#d9f0ef]">
                                 <i class="fas fa-star mr-2"></i> Rate Counselor
                             </button>
                             {% else %}
@@ -357,7 +389,7 @@
                         class="bg-white rounded-3xl w-full max-w-md p-8 shadow-2xl animate-fade-in-up">
                         <div class="text-center mb-8">
                             <div
-                                class="h-16 w-16 bg-violet-100 text-violet-600 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4">
+                                class="h-16 w-16 bg-[#d9f0ef] text-[#0b3b3c] rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4">
                                 <i class="fas fa-award"></i>
                             </div>
                             <h3 class="text-2xl font-black text-slate-900">How was your session?</h3>
@@ -381,7 +413,7 @@
                                     class="block text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2">Write
                                     a review (Optional)</label>
                                 <textarea name="review" rows="3"
-                                    class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-violet-500 focus:outline-none text-sm"
+                                    class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-[#1b5e5f] focus:outline-none text-sm"
                                     placeholder="Tell us about your experience..."></textarea>
                             </div>
 
@@ -389,7 +421,7 @@
                                 <button type="button" @click="ratingModal = false"
                                     class="flex-1 py-4 bg-slate-100 text-slate-600 font-bold rounded-2xl hover:bg-slate-200 transition-all">Cancel</button>
                                 <button type="submit"
-                                    class="flex-1 py-4 bg-violet-600 text-white font-bold rounded-2xl shadow-xl shadow-violet-200 hover:bg-violet-700 transition-all">Submit
+                                    class="flex-1 py-4 bg-[#0b3b3c] text-white font-bold rounded-2xl shadow-xl shadow-[#d9f0ef] hover:bg-[#1b5e5f] transition-all">Submit
                                     Rating</button>
                             </div>
                         </form>
@@ -420,7 +452,7 @@
                                     // Optional: make the button more prominent
                                     const joinBtn = joinDiv.querySelector('a');
                                     if (joinBtn) {
-                                        joinBtn.classList.remove('bg-indigo-600', 'hover:bg-indigo-700');
+                                        joinBtn.classList.remove('bg-[#0b3b3c]', 'hover:bg-[#1b5e5f]');
                                         joinBtn.classList.add('bg-green-600', 'hover:bg-green-700', 'animate-bounce');
                                         joinBtn.innerText = "Join Now - Counsellor is waiting!";
                                     }
@@ -444,7 +476,7 @@
             {% if tickets %}
             <div class="bg-white/70 backdrop-blur-xl rounded-3xl p-8 shadow-xl border border-white/50">
                 <h3 class="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
-                    <i class="fas fa-ticket-alt text-blue-500"></i> Your Support Tickets
+                    <i class="fas fa-ticket-alt" style="color: var(--primary);"></i> Your Support Tickets
                 </h3>
 
                 <div class="space-y-4">
@@ -464,22 +496,21 @@
                         <p class="text-sm text-slate-500 mb-4 italic">"{{ ticket.description }}"</p>
 
                         {% if ticket.admin_reply %}
-                        <div
-                            class="mt-4 p-4 bg-indigo-50 rounded-2xl border border-indigo-100 relative overflow-hidden">
+                        <div class="mt-4 p-4 bg-[#d9f0ef] rounded-2xl border border-[#a8ded9] relative overflow-hidden">
                             <div class="absolute top-0 right-0 p-2 opacity-5">
                                 <i class="fas fa-comment-dots text-4xl"></i>
                             </div>
                             <p
-                                class="text-xs font-bold text-indigo-700 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                                class="text-xs font-bold text-[#0b3b3c] uppercase tracking-wider mb-2 flex items-center gap-1.5">
                                 <i class="fas fa-user-shield text-[10px]"></i> Admin Response
                             </p>
                             <p class="text-sm text-slate-700 leading-relaxed">{{ ticket.admin_reply }}</p>
 
                             {% if ticket.status == 'Closed' %}
-                            <div class="mt-4 pt-4 border-t border-indigo-100">
-                                <p class="text-[11px] text-indigo-500 font-medium italic">
+                            <div class="mt-4 pt-4 border-t border-[#a8ded9]">
+                                <p class="text-[11px] text-[#1b5e5f] font-medium italic">
                                     Issue resolved. If you're not satisfied, please <a href="/ticket"
-                                        class="underline font-bold hover:text-indigo-700">raise a new ticket</a>.
+                                        class="underline font-bold hover:text-[#0b3b3c]">raise a new ticket</a>.
                                 </p>
                             </div>
                             {% endif %}
@@ -492,30 +523,29 @@
             {% endif %}
 
             <!-- Next Action Card -->
-            <div
-                class="rounded-3xl p-8 text-white shadow-xl relative overflow-hidden db-next-cta">
+            <div class="rounded-3xl p-8 text-white shadow-xl relative overflow-hidden db-next-cta">
                 <div class="absolute right-0 top-0 opacity-10 transform translate-x-1/4 -translate-y-1/4">
                     <i class="fas fa-rocket text-9xl"></i>
                 </div>
 
                 {% if not assessment.final_answers %}
                 <h3 class="text-xl font-bold mb-2">One Step Remaining!</h3>
-                <p class="text-indigo-100 mb-6 max-w-lg">You have completed the deep dive. Finish the final phase to
+                <p class="text-slate-300 mb-6 max-w-lg">You have completed the deep dive. Finish the final phase to
                     unlock your comprehensive career roadmap.</p>
                 <a href="/assessment/final"
-                    class="block text-center w-full sm:inline-block sm:w-auto px-6 py-3 sm:py-4 bg-white text-indigo-600 font-bold rounded-xl hover:bg-indigo-50 transition shadow-md">
+                    class="block text-center w-full sm:inline-block sm:w-auto px-6 py-3 sm:py-4 bg-white text-[#0b3b3c] font-bold rounded-xl hover:bg-[#d9f0ef] transition shadow-md">
                     Continue Assessment &rarr;
                 </a>
                 {% else %}
-                <h3 class="text-xl font-bold mb-2">Ready for Expert Guidance?</h3>
-                <p class="text-indigo-100 mb-6 max-w-lg">Your report is ready. The next logical step is to validate your
-                    plan with a certified counsellor.</p>
+                <h3 class="text-xl font-bold mb-2">Explore Your Career Path!</h3>
+                <p class="text-slate-300 mb-6 max-w-lg">Your assessment is complete! View your personalized career
+                    roadmap and explore top colleges for your path.</p>
                 <div class="flex flex-wrap gap-4">
-                    <button disabled
-                        class="inline-flex items-center gap-2 px-8 py-4 bg-slate-100 text-slate-400 rounded-2xl font-bold cursor-not-allowed border border-slate-200 shadow-inner">
-                        <i class="fas fa-lock text-[10px]"></i>
-                        Coming Soon
-                    </button>
+                    <a href="/assessment/result"
+                        class="inline-flex items-center gap-2 px-8 py-4 bg-white text-[#0b3b3c] rounded-2xl font-bold hover:bg-[#d9f0ef] transition shadow-md">
+                        <i class="fas fa-map-marked-alt"></i>
+                        View Career Blueprint
+                    </a>
                 </div>
                 {% endif %}
             </div>
@@ -546,7 +576,7 @@
                             <span class="font-bold text-slate-900">{{ assessment.goal_status }}</span>
                         </div>
                         <div class="h-2 bg-slate-100 rounded-full overflow-hidden">
-                            <div class="h-full bg-violet-500 w-2/3"></div>
+                            <div class="h-full bg-[#1b5e5f] w-2/3"></div>
                         </div>
                     </div>
                 </div>
@@ -555,33 +585,33 @@
             <!-- Tools Menu -->
             <div class="grid grid-cols-2 gap-4">
                 <a href="/career/roadmaps"
-                    class="relative bg-white/80 p-4 rounded-2xl shadow-sm border border-violet-200 shadow-violet-100 hover:border-violet-400 hover:shadow-md transition text-center group">
+                    class="relative bg-white/80 p-4 rounded-2xl shadow-sm border border-[#a8ded9] shadow-[#d9f0ef] hover:border-[#1b5e5f] hover:shadow-md transition text-center group">
                     <div
-                        class="w-10 h-10 mx-auto bg-violet-100 text-violet-600 rounded-full flex items-center justify-center mb-2 group-hover:scale-110 transition">
+                        class="w-10 h-10 mx-auto bg-[#d9f0ef] text-[#0b3b3c] rounded-full flex items-center justify-center mb-2 group-hover:scale-110 transition">
                         <i class="fas fa-book"></i>
                     </div>
                     <span class="text-sm font-bold text-slate-700">Resources</span>
                 </a>
                 <a href="/career/roadmaps"
-                    class="bg-white/80 p-4 rounded-2xl shadow-sm border border-violet-200 shadow-violet-100 hover:border-violet-400 hover:shadow-md transition text-center group">
+                    class="bg-white/80 p-4 rounded-2xl shadow-sm border border-[#a8ded9] shadow-[#d9f0ef] hover:border-[#1b5e5f] hover:shadow-md transition text-center group">
                     <div
-                        class="w-10 h-10 mx-auto bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mb-2 group-hover:scale-110 transition">
+                        class="w-10 h-10 mx-auto bg-[#d9f0ef] text-[#0b3b3c] rounded-full flex items-center justify-center mb-2 group-hover:scale-110 transition">
                         <i class="fas fa-route"></i>
                     </div>
                     <span class="text-sm font-bold text-slate-700">My Roadmaps</span>
                 </a>
                 <a href="/career/colleges"
-                    class="bg-white/80 p-4 rounded-2xl shadow-sm border border-violet-200 shadow-violet-100 hover:border-violet-400 hover:shadow-md transition text-center group">
+                    class="bg-white/80 p-4 rounded-2xl shadow-sm border border-[#a8ded9] shadow-[#d9f0ef] hover:border-[#1b5e5f] hover:shadow-md transition text-center group">
                     <div
-                        class="w-10 h-10 mx-auto bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mb-2 group-hover:scale-110 transition">
+                        class="w-10 h-10 mx-auto bg-[#d9f0ef] text-[#0b3b3c] rounded-full flex items-center justify-center mb-2 group-hover:scale-110 transition">
                         <i class="fas fa-university"></i>
                     </div>
                     <span class="text-sm font-bold text-slate-700">Colleges</span>
                 </a>
                 <a href="/chatbot"
-                    class="bg-white/80 p-4 rounded-2xl shadow-sm border border-slate-100 hover:border-violet-200 hover:shadow-md transition text-center group">
+                    class="bg-white/80 p-4 rounded-2xl shadow-sm border border-[#a8ded9] shadow-[#d9f0ef] hover:border-[#1b5e5f] hover:shadow-md transition text-center group">
                     <div
-                        class="w-10 h-10 mx-auto bg-pink-100 text-pink-600 rounded-full flex items-center justify-center mb-2 group-hover:scale-110 transition">
+                        class="w-10 h-10 mx-auto bg-[#d9f0ef] text-[#1b5e5f] rounded-full flex items-center justify-center mb-2 group-hover:scale-110 transition">
                         <i class="fas fa-comment-dots"></i>
                     </div>
                     <span class="text-sm font-bold text-slate-700">Mentor AI</span>
@@ -600,18 +630,18 @@
                             {{ user.bio if user.bio else 'Add a bio to let other students know about you.' }}
                         </p>
                         <button @click="editing = true"
-                            class="mt-3 text-xs text-violet-600 font-bold hover:text-violet-800 transition-colors flex items-center gap-1">
+                            class="mt-3 text-xs text-[#0b3b3c] font-bold hover:text-[#1b5e5f] transition-colors flex items-center gap-1">
                             <i class="fas fa-pen text-[10px]"></i> {{ 'Edit Bio' if user.bio else 'Add Bio' }}
                         </button>
                     </div>
                     <div x-show="editing" style="display: none;">
                         <form action="/profile/update-bio" method="POST">
                             <textarea name="bio" rows="3" maxlength="500"
-                                class="w-full rounded-xl border border-slate-200 p-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent resize-none"
+                                class="w-full rounded-xl border border-slate-200 p-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#1b5e5f] focus:border-transparent resize-none"
                                 placeholder="Tell other students about yourself...">{{ user.bio or '' }}</textarea>
                             <div class="flex items-center gap-2 mt-2">
                                 <button type="submit"
-                                    class="px-3 py-1.5 bg-violet-600 text-white rounded-lg text-xs font-bold hover:bg-violet-700 transition-all">
+                                    class="px-3 py-1.5 bg-[#0b3b3c] text-white rounded-lg text-xs font-bold hover:bg-[#1b5e5f] transition-all">
                                     Save
                                 </button>
                                 <button type="button" @click="editing = false"
