@@ -304,6 +304,15 @@ app.add_middleware(
     max_age=14 * 24 * 60 * 60,  # 14 days
 )
 
+# ─── Static Asset Caching Middleware ─────────────────────────────────────────
+@app.middleware("http")
+async def add_cache_control_header(request: Request, call_next):
+    response = await call_next(request)
+    if request.url.path.startswith("/static"):
+        # Cache static assets for 1 year (Standard practice for immutable assets)
+        response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+    return response
+
 @app.middleware("http")
 async def check_suspension(request: Request, call_next):
     # Paths that suspended users can still access
@@ -370,8 +379,8 @@ def get_current_user(request: Request, db: Session = Depends(get_db)):
     if not user_id: return None
     try:
         uid = int(user_id)
-        # Hit DB directly to avoid any weird dict issues in templates
-        return db.query(models.User).filter(models.User.id == uid).first()
+        # Eager load 'assessment' to avoid N+1 queries in templates
+        return db.query(models.User).options(joinedload(models.User.assessment)).filter(models.User.id == uid).first()
     except Exception: return None
 
 # Routes
