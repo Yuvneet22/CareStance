@@ -1829,7 +1829,7 @@ async def list_counsellors(request: Request, db: Session = Depends(get_db)):
     
     try:
         template = templates.get_template("counsellors_list.html")
-        content = template.render({"request": request, "user": user, "counsellors": counsellors})
+        content = template.render({"request": request, "user": user, "counsellors": counsellors, "RAZORPAY_KEY_ID": RAZORPAY_KEY_ID})
         return HTMLResponse(content=content)
     except Exception as e:
         import traceback
