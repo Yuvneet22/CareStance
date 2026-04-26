@@ -17,4 +17,4 @@ razorpay
 redis
 gunicorn
 uvicorn[standard]
-
+appwrite==18.0.0
