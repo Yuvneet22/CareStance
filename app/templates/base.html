@@ -910,6 +910,82 @@
                 baseIcon.className = open ? 'fa-solid fa-xmark' : 'fa-solid fa-bars';
             });
         }
+        // Image Compression Utility
+        async function handleImageUpload(event, formId) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            // Show loading state if possible (optional)
+            const originalBtn = event.target;
+            originalBtn.disabled = true;
+
+            try {
+                // Only compress if it's an image and larger than 1MB
+                if (file.type.startsWith('image/') && file.size > 1024 * 1024) {
+                    const compressedFile = await compressImage(file);
+                    uploadFile(compressedFile, formId);
+                } else {
+                    uploadFile(file, formId);
+                }
+            } catch (err) {
+                console.error("Compression failed, trying direct upload:", err);
+                uploadFile(file, formId);
+            }
+        }
+
+        async function compressImage(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = e => {
+                    const img = new Image();
+                    img.src = e.target.result;
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        let width = img.width;
+                        let height = img.height;
+                        const maxDimension = 1200;
+
+                        if (width > height) {
+                            if (width > maxDimension) {
+                                height *= maxDimension / width;
+                                width = maxDimension;
+                            }
+                        } else {
+                            if (height > maxDimension) {
+                                width *= maxDimension / height;
+                                height = maxDimension;
+                            }
+                        }
+
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+
+                        canvas.toBlob(blob => {
+                            resolve(new File([blob], file.name, { type: 'image/jpeg' }));
+                        }, 'image/jpeg', 0.7);
+                    };
+                    img.onerror = reject;
+                };
+                reader.onerror = reject;
+            });
+        }
+
+        function uploadFile(file, formId) {
+            const form = document.getElementById(formId);
+            const formData = new FormData();
+            formData.append('file', file);
+
+            // Use fetch for more control, or just create a hidden input and submit
+            // Direct submission is easier for the current backend structure
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(file);
+            const fileInput = form.querySelector('input[type="file"]');
+            fileInput.files = dataTransfer.files;
+            form.submit();
+        }
     </script>
 
     {% block extra_scripts %}{% endblock %}

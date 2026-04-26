@@ -99,7 +99,7 @@
                     <form id="photo-form" action="/profile/upload-photo" method="POST" enctype="multipart/form-data"
                         class="hidden">
                         <input type="file" id="photo-upload" name="file"
-                            onchange="document.getElementById('photo-form').submit()" accept="image/*">
+                            onchange="handleImageUpload(event, 'photo-form')" accept="image/*">
                     </form>
                 </div>
 
@@ -127,7 +127,7 @@
                 <form id="photo-form-basic" action="/profile/upload-photo" method="POST" enctype="multipart/form-data"
                     class="hidden">
                     <input type="file" id="photo-upload-basic" name="file"
-                        onchange="document.getElementById('photo-form-basic').submit()" accept="image/*">
+                        onchange="handleImageUpload(event, 'photo-form-basic')" accept="image/*">
                 </form>
             </div>
             {% endif %}

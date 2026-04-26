@@ -8,6 +8,8 @@ import shutil
 import warnings
 from types import SimpleNamespace
 from . import email_utils
+from .appwrite_client import databases, account, storage, DB_ID, COLLECTIONS
+from .appwrite_helper import get_user_by_id, get_user_by_email, update_assessment_simulation
 import google.generativeai as genai
 from groq import Groq, AsyncGroq
 from dotenv import load_dotenv
@@ -388,8 +390,13 @@ def get_current_user(request: Request, db: Session = Depends(get_db)):
     user_id = request.cookies.get("user_id")
     if not user_id: return None
     try:
+        # Try fetching from Appwrite first
+        user = get_user_by_id(user_id)
+        if user:
+             return user
+        
+        # Fallback to local SQL if not found in Appwrite
         uid = int(user_id)
-        # Eager load 'assessment' to avoid N+1 queries in templates
         return db.query(models.User).options(joinedload(models.User.assessment)).filter(models.User.id == uid).first()
     except Exception: return None
 
@@ -507,18 +514,49 @@ async def signup(
     role: str = Form("student"),
     db: Session = Depends(get_db)
 ):
-    # Check existing user
+    # 1. Check existing user local
     user = db.query(models.User).filter(models.User.email == email).first()
     if user:
         return templates.TemplateResponse(request=request, name="signup.html", context={"error": "Email already exists"})
     
     try:
-        # Create User
+        # 2. Create User in Appwrite Auth
+        user_id = str(uuid.uuid4())[:20] # Appwrite ID limit
+        try:
+            appwrite_user = account.create(
+                user_id=user_id,
+                email=email,
+                password=password,
+                name=full_name
+            )
+        except Exception as ae:
+            print(f"Appwrite Signup Error: {ae}")
+            return templates.TemplateResponse(request=request, name="signup.html", context={"error": f"Appwrite error: {ae}"})
+
+        # 3. Create User in Local DB (Sync for transition)
         hashed_pw = get_password_hash(password)
-        new_user = models.User(email=email, hashed_password=hashed_pw, full_name=full_name, contact_number=contact_number, role=role)
+        new_user = models.User(id=None, email=email, hashed_password=hashed_pw, full_name=full_name, contact_number=contact_number, role=role)
         db.add(new_user)
         db.flush()
         
+        # 4. Create User Metadata in Appwrite DB
+        try:
+            databases.create_document(
+                database_id=DB_ID,
+                collection_id=COLLECTIONS["users"],
+                document_id=user_id,
+                data={
+                    "email": email,
+                    "full_name": full_name,
+                    "contact_number": contact_number,
+                    "role": role,
+                    "local_id": new_user.id
+                }
+            )
+        except Exception as de:
+            print(f"Appwrite DB Error: {de}")
+            # Non-critical for now as we have local DB, but should be logged
+
         # Create Counsellor Profile
         if role == "counsellor":
             c_profile = models.CounsellorProfile(user_id=new_user.id)
@@ -530,7 +568,7 @@ async def signup(
         db.rollback()
         return templates.TemplateResponse(request=request, name="signup.html", context={"error": "An error occurred during signup. Please try again."})
     
-    return RedirectResponse(url="/login?message=Account created! Please login.", status_code=status.HTTP_302_FOUND)
+    return RedirectResponse(url="/login?message=Account created with Appwrite! Please login.", status_code=status.HTTP_302_FOUND)
 
 @app.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):
@@ -549,18 +587,49 @@ async def login(
     password: str = Form(...),
     db: Session = Depends(get_db)
 ):
+    # 1. Try Appwrite Login first
+    appwrite_user = None
+    try:
+        session = account.create_email_password_session(email, password)
+        appwrite_user = get_user_by_email(email)
+        print(f"Appwrite Login Success: {email}")
+    except Exception as ae:
+        print(f"Appwrite Login Failed: {ae}")
+    
+    # 2. Local verify (for transition/legacy fallback)
     user = db.query(models.User).filter(models.User.email == email).first()
-    if not user or not verify_password(password, user.hashed_password):
+    
+    # If not in Appwrite and not local, error
+    if not appwrite_user and (not user or not verify_password(password, user.hashed_password)):
          return templates.TemplateResponse(request=request, name="login.html", context={"error": "Invalid credentials"})
     
+    # Use Appwrite user as primary if available
+    effective_user = appwrite_user if appwrite_user else user
+    
+    try:
+        # 2. Create Appwrite Session (Server-side)
+        # Note: In a production app, you might want to handle sessions differently
+        # but for now, we ensure the user exists and can authenticate in Appwrite.
+        try:
+            # We don't necessarily need to store the session on the server for every request
+            # if we use local sessions, but we should verify the user can log in to Appwrite.
+            session = account.create_email_password_session(email, password)
+            print(f"Appwrite Session Created: {session['$id']}")
+        except Exception as ae:
+            print(f"Appwrite Login Error: {ae}")
+            # If user exists locally but not in Appwrite (e.g. legacy user), we might need to sync them
+            # For now, we'll just log it.
+    except Exception as e:
+        print(f"Login/Appwrite error: {e}")
+
     # Pre-populate suspension cache
-    user_cache.set_user_status(user.id, {"is_suspended": user.is_suspended})
+    user_cache.set_user_status(effective_user.id, {"is_suspended": getattr(effective_user, 'is_suspended', False)})
     
     response = RedirectResponse(url="/dashboard", status_code=status.HTTP_302_FOUND)
     # 30 day persistent session
     response.set_cookie(
         key="user_id", 
-        value=str(user.id), 
+        value=str(effective_user.id), 
         max_age=30 * 24 * 60 * 60,
         httponly=True,
         samesite="lax"
@@ -2902,6 +2971,10 @@ async def simulation_start(career_title: str, request: Request, db: Session = De
     if not questions:
         return RedirectResponse(url="/assessment/result?error=failed_to_generate_simulation", status_code=status.HTTP_302_FOUND)
     
+    # Appwrite Update
+    update_assessment_simulation(user.id, career=career_title, questions=questions, answers=[], evaluation=None)
+    
+    # SQL Fallback
     result.simulation_career = career_title
     result.simulation_questions = questions
     result.simulation_answers = [] # Reset answers
@@ -2955,6 +3028,10 @@ async def simulation_answer(
         current_answers.append("")
     current_answers[index] = answer
     
+    # Appwrite Update
+    update_assessment_simulation(user.id, answers=current_answers)
+    
+    # SQL Fallback
     result.simulation_answers = current_answers
     db.commit()
     
@@ -2988,6 +3065,11 @@ async def simulation_result(request: Request, db: Session = Depends(get_db)):
                 result.simulation_questions,
                 result.simulation_answers
             )
+        
+        # Appwrite Update
+        update_assessment_simulation(user.id, evaluation=evaluation)
+        
+        # SQL Fallback
         result.simulation_evaluation = evaluation
         db.commit()
     
