@@ -4439,7 +4439,8 @@ Conduct a brief, friendly 5-question interview to assess and guide them on this 
 1. Ask one question at a time.
 2. The questions should be general but highly relevant to this milestone (e.g., asking what they've learned, what challenges they faced, what tools they used, or what their next immediate action is).
 3. Do not ask more than 5 questions.
-4. On the 5th response, summarize their accomplishments for this step, congratulate them warmly, and instruct them to click the "Finish & Complete Milestone" button to mark this step as completed and return to their roadmap.
+4. On the 5th response, summarize their accomplishments for this step, congratulate them warmly, and suggest an effort percentage (between 60% and 100%) that reflects their dedication based on their answers (e.g., "You put 85% of effort in this step!").
+5. CRITICAL: At the very end of your 5th response, you MUST append the exact string: [EFFORT: XX%] where XX is the effort percentage you calculated (e.g., [EFFORT: 85%]). Do not include this on earlier responses.
 """
 
 class RoadmapStepChatRequest(BaseModel):
@@ -4541,6 +4542,26 @@ async def roadmap_step_chat_message(path_id: int, step_index: int, request: Requ
 
     # Mark ready on the 5th user message
     recommendation_ready = user_msg_count >= 5
+    
+    if recommendation_ready:
+        import re
+        import random
+        match = re.search(r"\[EFFORT:\s*(\d+)%\]", ai_text)
+        if match:
+            effort_score = int(match.group(1))
+        else:
+            effort_score = random.randint(70, 95)
+            
+        # Clean tracking tag from response
+        ai_text = re.sub(r"\[EFFORT:\s*\d+%\]", "", ai_text).strip()
+        
+        # Save effort score to the step dictionary
+        step["effort_percentage"] = effort_score
+        path.path_data = data
+        from sqlalchemy.orm.attributes import flag_modified
+        flag_modified(path, "path_data")
+        db.add(path)
+        db.commit()
     
     return {
         "response": ai_text,

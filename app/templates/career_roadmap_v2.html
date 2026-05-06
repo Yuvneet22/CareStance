@@ -256,6 +256,12 @@
                                                 class="text-[#1b5e5f] text-[10px] md:text-xs font-bold mt-1 bg-[#d9f0ef] inline-block px-2.5 py-1 md:px-3 rounded-md border border-[#a8ded9]">
                                                 <i class="far fa-clock mr-1"></i> {{ step.timeline or 'Ongoing' }}
                                             </p>
+                                            {% if step.effort_percentage %}
+                                            <p
+                                                class="text-emerald-700 text-[10px] md:text-xs font-black mt-1 bg-emerald-50 inline-block px-2.5 py-1 md:px-3 rounded-md border border-emerald-200">
+                                                <i class="fas fa-heart animate-pulse mr-1"></i> Effort: {{ step.effort_percentage }}%
+                                            </p>
+                                            {% endif %}
                                 </div>
 
                                 {% if step.detailed_task %}
