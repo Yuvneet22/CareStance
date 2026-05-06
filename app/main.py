@@ -4453,17 +4453,21 @@ GUIDELINES:
 4. Never ask more than 5 questions total.
 5. Questions should feel conversational, not robotic or repetitive.
 6. Encourage reflection and motivation throughout the interaction.
+7. Be precise while Calculating effort percentage. account each detail of student response. Be strict while calculating effort percentage.
 
 FINAL RESPONSE RULES (AFTER THE 5TH USER RESPONSE):
 1. Provide:
    - A concise summary of the student’s accomplishments
    - Positive encouragement and recognition
    - Constructive next-step guidance
-2. Estimate an effort percentage between 60% and 100% based on:
+2. Estimate an effort percentage between 0% and 100% based on:
    - Consistency
    - Depth of understanding
    - Practical implementation
    - Initiative shown
+   - Tone of Response
+   - Time invested
+   
 3. Mention the effort percentage naturally in the response.
 4. VERY IMPORTANT:
    At the absolute end of the final response, append this exact format:
@@ -4500,6 +4504,11 @@ async def roadmap_step_chat_page(path_id: int, step_index: int, request: Request
     if not (0 <= step_index < len(steps)):
         raise HTTPException(status_code=404, detail="Step not found")
         
+    if step_index > 0:
+        previous_step = steps[step_index - 1]
+        if not previous_step.get("completed", False):
+            return RedirectResponse(url=f"/career/roadmap/{path_id}", status_code=status.HTTP_302_FOUND)
+        
     step = steps[step_index]
     return templates.TemplateResponse(request=request, name="roadmap_step_chat.html", context={
         "user": user,
@@ -4526,8 +4535,13 @@ async def roadmap_step_chat_message(path_id: int, step_index: int, request: Requ
         steps = data
         
     if not (0 <= step_index < len(steps)):
-        raise HTTPException(status_code=404, detail="Step not found")
-        
+         raise HTTPException(status_code=404, detail="Step not found")
+         
+    if step_index > 0:
+        previous_step = steps[step_index - 1]
+        if not previous_step.get("completed", False):
+            raise HTTPException(status_code=400, detail="Previous step is not completed yet.")
+         
     step = steps[step_index]
     
     # Build prompt
