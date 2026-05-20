@@ -59,6 +59,23 @@ class AssessmentResult(Base):
     simulation_paid = Column(Boolean, default=False, nullable=False)
     simulation_credits = Column(Integer, default=0, nullable=False)
     
+    # New Multi-Phase Assessment Columns (Grade 10 and 12 Integration)
+    student_type = Column(String, default="10th", nullable=True)
+    current_phase = Column(Integer, default=1, nullable=True)
+    intake_turn = Column(Integer, default=1, nullable=True)
+    intake_name = Column(String, nullable=True)
+    intake_grade = Column(Integer, nullable=True)
+    intake_stream = Column(String, nullable=True)
+    telemetry_logs = Column(JSON, nullable=True)
+    reality_answers = Column(JSON, nullable=True)
+    chat_messages = Column(JSON, nullable=True)
+    chat_turn = Column(Integer, default=0, nullable=True)
+    proxy_answers = Column(JSON, nullable=True)
+    scenario_answers = Column(JSON, nullable=True)
+    worldview_answers = Column(JSON, nullable=True)
+    future_self_answers = Column(JSON, nullable=True)
+    assessment_report = Column(JSON, nullable=True)
+    
     user = relationship("User", back_populates="assessment")
 
 from sqlalchemy import DateTime

@@ -3,440 +3,1067 @@
 {% block title %}Assessment{% endblock %}
 
 {% block content %}
-<div class="max-w-3xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
-    <div class="bg-white/70 backdrop-blur-xl shadow-2xl rounded-3xl overflow-hidden border border-white/50">
-        <div class="w-full bg-slate-100 h-2.5 relative overflow-hidden">
-            <div id="progress-bar"
-                class="bg-gradient-to-r from-[#0b3b3c] via-[#1b5e5f] to-[#0b3b3c] h-2.5 transition-all duration-700 ease-out relative"
-                style="width: 0%">
-                <div
-                    class="absolute top-0 right-0 bottom-0 w-10 bg-white/40 blur-[4px] -skew-x-12 translate-x-full animate-[shimmer_2s_infinite]">
-                </div>
-            </div>
+<!-- Font Preload -->
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+
+<style>
+    :root {
+        --primary: #0f4c4d;
+        --primary-light: #207d7e;
+        --primary-dark: #072e2f;
+        --accent: #ff7b54;
+        --bg-glass: rgba(255, 255, 255, 0.75);
+        --border-glass: rgba(255, 255, 255, 0.4);
+    }
+
+    body {
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        background: linear-gradient(135deg, #f0f7f7 0%, #d9eae8 100%);
+        min-height: 100vh;
+    }
+
+    .glass-card {
+        background: var(--bg-glass);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid var(--border-glass);
+        box-shadow: 0 20px 50px rgba(15, 76, 77, 0.08);
+    }
+
+    /* Swipe Phase Styles */
+    .card-deck {
+        position: relative;
+        height: 380px;
+        width: 100%;
+        max-width: 320px;
+        margin: 0 auto;
+        perspective: 1000px;
+    }
+
+    .swipe-card {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        border-radius: 24px;
+        padding: 24px;
+        background: white;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+        border: 1px solid rgba(0,0,0,0.03);
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s;
+        cursor: grab;
+        user-select: none;
+        transform-origin: 50% 100%;
+    }
+
+    .swipe-card:active {
+        cursor: grabbing;
+    }
+
+    .swipe-card.swiped-right {
+        transform: translate(150%, -20%) rotate(30deg) !important;
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    .swipe-card.swiped-left {
+        transform: translate(-150%, -20%) rotate(-30deg) !important;
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    /* Chat Phase Styles */
+    .chat-container {
+        height: 350px;
+        overflow-y: auto;
+        scrollbar-width: thin;
+    }
+
+    .chat-bubble {
+        max-width: 80%;
+        padding: 12px 18px;
+        border-radius: 20px;
+        margin-bottom: 12px;
+        line-height: 1.5;
+        font-size: 14px;
+        animation: bubble-fade 0.3s ease-out forwards;
+    }
+
+    .chat-bubble.ai {
+        background: #f0f7f7;
+        color: var(--primary-dark);
+        border-bottom-left-radius: 4px;
+        align-self: flex-start;
+    }
+
+    .chat-bubble.user {
+        background: var(--primary);
+        color: white;
+        border-bottom-right-radius: 4px;
+        align-self: flex-end;
+    }
+
+    @keyframes bubble-fade {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Step Indicators */
+    .step-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background-color: #cbd5e1;
+        transition: all 0.3s;
+    }
+    .step-dot.active {
+        background-color: var(--primary);
+        transform: scale(1.3);
+    }
+    .step-dot.completed {
+        background-color: var(--primary-light);
+    }
+</style>
+
+<div class="max-w-4xl mx-auto py-10 px-4 sm:px-6">
+    <!-- Header with dynamic tracking -->
+    <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+        <div>
+            <h1 class="text-3xl font-extrabold text-slate-800 tracking-tight" id="grade-title">Psychometric Assessment</h1>
+            <p class="text-slate-500 font-medium mt-1">Multi-Phase Analytical Mapping Engine</p>
         </div>
-
-        <div
-            class="px-6 py-6 sm:px-8 flex justify-between items-center bg-[#d9f0ef]/50 border-b border-[#a8ded9] relative">
-            <div>
-                <h3 class="text-xl leading-6 font-bold text-slate-800">Career Personality Assessment</h3>
-                <p class="mt-1 max-w-2xl text-sm text-slate-500 font-medium tracking-wide uppercase">Question <span
-                        id="current-step-text" class="text-[#0b3b3c] font-bold">1</span> of {{ questions|length }}</p>
-                <a href="/assessment/reset" onclick="return confirm('Restart assessment from scratch?')"
-                    class="text-[10px] font-bold text-rose-500 uppercase hover:underline mt-1 block">Restart
-                    Assessment</a>
+        <div class="flex flex-col items-end gap-1">
+            <span class="text-xs font-bold uppercase tracking-wider text-slate-400" id="phase-step-label">Phase 1 of 5</span>
+            <div class="flex gap-2 mt-1" id="step-dots-container">
+                <!-- Dynamically populated step dots -->
             </div>
-            <div class="flex space-x-2 items-center">
-                <div class="flex items-center bg-slate-100 rounded-xl p-1 shadow-inner border border-slate-200">
-                    <button type="button" onclick="setLanguage('en')" id="lang-en"
-                        class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-300">EN</button>
-                    <button type="button" onclick="setLanguage('hi')" id="lang-hi"
-                        class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-300">HI</button>
-                </div>
-                <button type="button" id="record-btn"
-                    class="p-3 rounded-full bg-slate-100 text-slate-600 shadow-sm border border-slate-200 hover:bg-red-50 hover:text-red-600 transition-all transform hover:scale-105"
-                    title="Record Answer">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
-                        stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                    </svg>
-                </button>
-                <button type="button" onclick="speakCurrentQuestion()"
-                    class="p-3 rounded-full bg-white text-[#0b3b3c] shadow-sm border border-slate-200 hover:bg-[#d9f0ef] hover:text-[#0b3b3c] transition-all transform hover:scale-105"
-                    title="Read Aloud">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
-                        stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-                    </svg>
-                </button>
-                <button type="button" onclick="togglePauseVoice()" id="pause-btn"
-                    class="p-3 rounded-full bg-white text-[#0b3b3c] shadow-sm border border-slate-200 hover:bg-[#d9f0ef] hover:text-[#0b3b3c] transition-all transform hover:scale-105"
-                    title="Pause/Resume Audio">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
-                        stroke="currentColor">
-                        <path id="pause-icon" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                </button>
-            </div>
-        </div>
-
-        <div class="px-6 py-8 sm:p-10">
-            <form id="assessment-form" action="/assessment/submit" method="POST">
-
-                {% for q in questions %}
-                <div class="question-step hidden space-y-8" data-step="{{ loop.index0 }}">
-                    <div class="text-center">
-                        {% if q.category_image %}
-                        <div class="mb-8 flex justify-center transform transition-all duration-700 hover:scale-105">
-                            <img src="{{ q.category_image }}" alt="{{ q.title }}"
-                                class="h-48 sm:h-56 w-auto object-contain rounded-3xl shadow-2xl shadow-slate-200/50 border-4 border-white bg-white/50 p-1">
-                        </div>
-                        {% endif %}
-                        <h4 class="text-2xl sm:text-3xl font-extrabold text-slate-800 mb-6 px-4 leading-tight">
-                            {{ q.question if q.question else q.title }}
-                        </h4>
-                        <p class="text-sm font-semibold text-slate-400 uppercase tracking-widest mb-2">
-                            {{ q.title if q.question else "Assessment" }}
-                        </p>
-                        <p class="text-sm text-slate-500 font-medium">
-                            Select the best option below 👇
-                        </p>
-                    </div>
-
-                    <div class="grid grid-cols-1 gap-4">
-                        {% for opt in q.options %}
-                        <label class="relative cursor-pointer group">
-                            <input type="radio" name="{{ q.id }}" value="{{ opt.value }}" required
-                                onchange="handleSelection(this)" class="peer sr-only">
-
-                            <div
-                                class="h-full rounded-2xl border-2 border-slate-200/60 bg-white shadow-sm overflow-hidden transition-all duration-300 ease-in-out hover:shadow-xl hover:border-[#a8ded9] hover:-translate-y-1 peer-checked:border-emerald-500 peer-checked:ring-4 peer-checked:ring-emerald-50 peer-checked:bg-emerald-50/30 group">
-                                <div class="p-6 flex items-center space-x-4">
-                                    <div
-                                        class="flex-shrink-0 w-10 h-10 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-[#d9f0ef] group-hover:text-[#0b3b3c] transition-colors peer-checked:bg-emerald-500 peer-checked:text-white">
-                                        <span class="font-bold text-lg">{{ opt.value }}</span>
-                                    </div>
-                                    <div class="flex-grow">
-                                        <p class="text-slate-700 font-bold text-lg leading-tight option-text">{{ opt.text }}</p>
-                                    </div>
-                                    <div class="flex-shrink-0 opacity-0 peer-checked:opacity-100 transition-opacity">
-                                        <svg class="w-6 h-6 text-emerald-500" fill="currentColor" viewBox="0 0 20 20">
-                                            <path fill-rule="evenodd"
-                                                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                                                clip-rule="evenodd"></path>
-                                        </svg>
-                                    </div>
-                                </div>
-                            </div>
-                        </label>
-                        {% endfor %}
-                    </div>
-                </div>
-                {% endfor %}
-
-                <div id="submit-section" class="hidden text-center pt-10">
-                    <div class="mb-6">
-                        <div class="mx-auto flex items-center justify-center h-20 w-20 rounded-full bg-green-100">
-                            <svg class="h-10 w-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M5 13l4 4L19 7"></path>
-                            </svg>
-                        </div>
-                    </div>
-                    <h3 class="text-2xl font-bold text-slate-900 mb-3">Assessment Complete!</h3>
-                    <p class="text-slate-500 mb-8 max-w-md mx-auto">Great job! We've analyzed your responses. Click
-                        below to reveal your personality archetype.</p>
-                    <button type="submit" id="reveal-btn"
-                        class="w-full sm:w-auto py-4 px-10 rounded-2xl shadow-xl shadow-[#d9f0ef] text-lg font-bold text-white bg-gradient-to-r from-[#0b3b3c] via-[#1b5e5f] to-[#0b3b3c] hover:from-[#1b5e5f] hover:via-[#0b3b3c] hover:to-[#1b5e5f] transition-all duration-300 transform hover:scale-105 hover:-translate-y-1 ring-offset-2 focus:ring-4 focus:ring-[#a8ded9] flex items-center justify-center mx-auto min-w-[240px] relative overflow-hidden group">
-                        <div
-                            class="absolute inset-0 bg-white/20 -skew-x-12 -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]">
-                        </div>
-                        <span id="btn-text" class="relative z-10">Reveal My Profile</span>
-                        <div id="btn-spinner" class="hidden ml-3">
-                            <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none"
-                                viewBox="0 0 24 24">
-                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
-                                    stroke-width="4"></circle>
-                                <path class="opacity-75" fill="currentColor"
-                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
-                                </path>
-                            </svg>
-                        </div>
-                    </button>
-                    <p id="analyzing-text" class="hidden mt-4 text-[#0b3b3c] font-bold animate-pulse">Deep AI Analysis
-                        in progress... Please wait.</p>
-                </div>
-            </form>
         </div>
     </div>
-</div>
 
-<!-- Floating Premium AI Buddy Orb -->
-<div id="talking-buddy" onclick="window.location.href='/chatbot'"
-    class="fixed top-24 right-8 z-[100] flex items-center justify-center w-20 h-20 cursor-pointer pointer-events-auto hover:scale-110 transition-transform">
-    <!-- Outer Pulse Rings -->
-    <div class="pulse-ring absolute inset-0 rounded-full bg-[#1b5e5f] opacity-0"></div>
-    <div class="pulse-ring absolute inset-0 rounded-full bg-[#1b5e5f] opacity-0" style="animation-delay: 0.5s"></div>
+    <!-- Main Active Card Content -->
+    <div class="glass-card rounded-3xl p-8 sm:p-10 shadow-2xl relative overflow-hidden min-h-[500px] flex flex-col justify-between">
+        
+        <!-- Loading Screen inside card -->
+        <div id="loader" class="absolute inset-0 bg-white/90 z-50 flex flex-col items-center justify-center transition-opacity duration-300">
+            <div class="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-[#0f4c4d] mb-4"></div>
+            <p class="text-slate-600 font-medium" id="loader-text">Loading Phase Assets...</p>
+        </div>
 
-    <!-- Inner Orb -->
-    <div
-        class="buddy-orb relative w-14 h-14 rounded-full bg-gradient-to-br from-[#0b3b3c] to-[#0b3b3c] shadow-[0_0_30px_rgba(139,92,246,0.6)] flex items-center justify-center border-2 border-[#1b5e5f]/30 overflow-hidden">
-        <div class="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(255,255,255,0.2),transparent)]"></div>
-        <span class="text-3xl z-10">🎓</span>
-    </div>
+        <!-- Upper section of container -->
+        <div class="w-full" id="phase-body">
+            <!-- Phase Views render here dynamically -->
+        </div>
 
-    <!-- Status Indicator -->
-    <div id="buddy-status"
-        class="absolute bottom-1 right-1 h-5 w-5 bg-slate-400 rounded-full border-2 border-white shadow-lg z-[110] transition-colors duration-300">
+        <!-- Bottom bar (prev/next/restart/voice) -->
+        <div class="mt-8 pt-6 border-t border-slate-200/50 flex justify-between items-center w-full">
+            <a href="/assessment/reset" onclick="return confirm('Reset all progress and restart?')" class="text-xs font-bold uppercase tracking-wider text-rose-500 hover:text-rose-600 transition-colors">
+                Restart Test
+            </a>
+            
+            <div class="flex items-center gap-3">
+                <button type="button" id="speak-btn" onclick="speakActivePrompt()" class="p-2.5 rounded-full bg-slate-100 text-slate-600 hover:bg-[#d9eae8] hover:text-primary transition-all duration-300" title="Read Prompt Aloud">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/></svg>
+                </button>
+                <div class="text-xs font-bold text-slate-400 uppercase tracking-widest" id="bottom-status">
+                    Processing
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
 <script>
-    const questions = {{ questions|tojson }};
-    let currentStep = 0;
-    const stepsElements = document.querySelectorAll('.question-step');
-    const totalSteps = questions.length;
-    const progressBar = document.getElementById('progress-bar');
-    const currentStepText = document.getElementById('current-step-text');
-    let currentLanguage = localStorage.getItem('assessmentLanguage') || 'hi';
+    let assessmentState = {};
+    let activePhaseData = null;
+    let swipeLogs = [];
+    let swipeCards = [];
+    let activeSwipeIndex = 0;
+    
+    // Voice Synth Cache
+    let speechSynth = window.speechSynthesis;
+    let activeUtterance = null;
 
-    function setLanguage(lang) {
-        currentLanguage = lang;
-        localStorage.setItem('assessmentLanguage', lang);
-        updateLanguageUI();
-    }
+    document.addEventListener("DOMContentLoaded", async () => {
+        await refreshState();
+    });
 
-    function updateLanguageUI() {
-        const btnEn = document.getElementById('lang-en');
-        const btnHi = document.getElementById('lang-hi');
-
-        if (currentLanguage === 'en') {
-            btnEn.classList.add('bg-[#0b3b3c]', 'text-white', 'shadow-md');
-            btnEn.classList.remove('text-slate-500');
-            btnHi.classList.remove('bg-[#0b3b3c]', 'text-white', 'shadow-md');
-            btnHi.classList.add('text-slate-500');
-        } else {
-            btnHi.classList.add('bg-[#0b3b3c]', 'text-white', 'shadow-md');
-            btnHi.classList.remove('text-slate-500');
-            btnEn.classList.remove('bg-[#0b3b3c]', 'text-white', 'shadow-md');
-            btnEn.classList.add('text-slate-500');
-        }
-
-        // Update current question and options text
-        const stepEl = stepsElements[currentStep];
-        if (stepEl) {
-            const qData = questions[currentStep];
-            const questionTitle = stepEl.querySelector('h4');
-            const optionsTexts = stepEl.querySelectorAll('.option-text');
-
-            if (currentLanguage === 'en') {
-                questionTitle.innerText = qData.question_en || qData.question || qData.title;
-                qData.options.forEach((opt, optIndex) => {
-                    if (optionsTexts[optIndex]) {
-                        optionsTexts[optIndex].innerText = opt.text_en || opt.text;
-                    }
-                });
+    async function refreshState() {
+        showLoader("Synchronizing progress with server...");
+        try {
+            const res = await fetch("/assessment/api/state");
+            const data = await res.json();
+            if (data.status === "success") {
+                assessmentState = data;
+                updateHeader();
+                await loadPhase();
             } else {
-                questionTitle.innerText = qData.question || qData.title;
-                qData.options.forEach((opt, optIndex) => {
-                    if (optionsTexts[optIndex]) {
-                        optionsTexts[optIndex].innerText = opt.text;
-                    }
-                });
+                window.location.href = "/dashboard";
             }
+        } catch (e) {
+            console.error("State synch failed", e);
+            hideLoader();
         }
     }
 
-    function togglePauseVoice() {
-        if (window.speechSynthesis.paused) {
-            window.speechSynthesis.resume();
-            document.getElementById('pause-icon').setAttribute('d', 'M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z');
-        } else if (window.speechSynthesis.speaking) {
-            window.speechSynthesis.pause();
-            document.getElementById('pause-icon').setAttribute('d', 'M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z');
+    function showLoader(text = "Processing...") {
+        document.getElementById("loader-text").innerText = text;
+        const loader = document.getElementById("loader");
+        loader.style.opacity = "1";
+        loader.style.pointerEvents = "auto";
+        loader.classList.remove("hidden");
+    }
+
+    function hideLoader() {
+        const loader = document.getElementById("loader");
+        loader.style.opacity = "0";
+        loader.style.pointerEvents = "none";
+        setTimeout(() => loader.classList.add("hidden"), 300);
+    }
+
+    function updateHeader() {
+        const isG12 = assessmentState.student_type === "12th";
+        const maxPhases = isG12 ? 8 : 5;
+        document.getElementById("grade-title").innerText = isG12 ? "Grade 12 Career Track" : "Grade 10 Stream Planner";
+        document.getElementById("phase-step-label").innerText = `Phase ${assessmentState.current_phase} of ${maxPhases}`;
+        
+        // Render step dots
+        const dotsContainer = document.getElementById("step-dots-container");
+        dotsContainer.innerHTML = "";
+        for (let i = 1; i <= maxPhases; i++) {
+            const dot = document.createElement("div");
+            dot.className = "step-dot";
+            if (i < assessmentState.current_phase) dot.classList.add("completed");
+            else if (i === assessmentState.current_phase) dot.classList.add("active");
+            dotsContainer.appendChild(dot);
         }
     }
 
-    const talkingBuddy = document.getElementById('talking-buddy');
-    const buddyStatus = document.getElementById('buddy-status');
+    async function loadPhase() {
+        const phase = assessmentState.current_phase;
+        const isG12 = assessmentState.student_type === "12th";
+        
+        // Stop any reading
+        if (speechSynth.speaking) speechSynth.cancel();
 
-    function showStep(index) {
-        stepsElements.forEach(step => step.classList.add('hidden'));
+        try {
+            const res = await fetch("/assessment/api/questions");
+            activePhaseData = await res.json();
+            
+            const body = document.getElementById("phase-body");
+            body.innerHTML = "";
 
-        if (index >= totalSteps) {
-            document.getElementById('submit-section').classList.remove('hidden');
-            currentStepText.innerText = totalSteps;
-            updateProgress(100);
+            if (!isG12) {
+                // Grade 10 Phase Handlers
+                if (phase === 1) renderSwipePhase10();
+                else if (phase === 2) renderChatPhase();
+                else if (phase === 3) renderProxyPhase();
+                else if (phase === 4) renderScenariosPhase();
+                else if (phase === 5) renderCompilePhase();
+            } else {
+                // Grade 12 Phase Handlers
+                if (phase === 1) renderSwipePhase12();
+                else if (phase === 2) renderRealityPhase();
+                else if (phase === 3) renderChatPhase();
+                else if (phase === 4) renderProxyPhase();
+                else if (phase === 5) handleNoiseCancellationPhase();
+                else if (phase === 6) renderWorldviewPhase();
+                else if (phase === 7) renderFutureSelfPhase();
+                else if (phase === 8) renderCompilePhase();
+            }
+            hideLoader();
+        } catch (e) {
+            console.error("Failed to load phase questions", e);
+            hideLoader();
+        }
+    }
+
+    // Speak Prompt Aloud
+    function speakActivePrompt() {
+        if (speechSynth.speaking) {
+            speechSynth.cancel();
+            return;
+        }
+        
+        // Find text content depending on view
+        let text = "";
+        const phase = assessmentState.current_phase;
+        
+        if (phase === 1) {
+            const activeCard = swipeCards[activeSwipeIndex];
+            if (activeCard) text = activeCard.text || activeCard.title || "";
+        } else if (phase === 2 && assessmentState.student_type === "10th") {
+            const lastAI = document.querySelector(".chat-bubble.ai:last-child");
+            if (lastAI) text = lastAI.innerText;
+        } else if (phase === 3 && assessmentState.student_type === "12th") {
+            const lastAI = document.querySelector(".chat-bubble.ai:last-child");
+            if (lastAI) text = lastAI.innerText;
+        } else {
+            // General text search
+            const pText = document.querySelector("#phase-body h3, #phase-body h2, #phase-body p");
+            if (pText) text = pText.innerText;
+        }
+
+        if (text) {
+            activeUtterance = new SpeechSynthesisUtterance(text);
+            const voices = speechSynth.getVoices();
+            const preferredVoice = voices.find(v => v.lang.startsWith("en-IN")) || voices.find(v => v.lang.startsWith("en"));
+            if (preferredVoice) activeUtterance.voice = preferredVoice;
+            speechSynth.speak(activeUtterance);
+        }
+    }
+
+    // --- SWIPE PHASE (GRADE 10 & 12) ---
+    function renderSwipePhase10() {
+        swipeCards = activePhaseData.cards || [];
+        activeSwipeIndex = 0;
+        swipeLogs = [];
+        renderSwipeInterface("Explore Activities", "Swipe right if you enjoy this, left if you don't. Dwell time is analyzed.");
+    }
+
+    function renderSwipePhase12() {
+        swipeCards = activePhaseData.cards || [];
+        activeSwipeIndex = 0;
+        swipeLogs = [];
+        renderSwipeInterface("Telemetry Activation", "Swipe right for interest, left for aversion. We analyze reaction speeds & friction events.");
+    }
+
+    function renderSwipeInterface(title, desc) {
+        const body = document.getElementById("phase-body");
+        body.innerHTML = `
+            <div class="text-center mb-6">
+                <span class="px-3 py-1 bg-teal-100 text-teal-800 rounded-full text-xs font-bold uppercase tracking-wider">Phase 1: Reflex Mapping</span>
+                <h2 class="text-2xl font-bold mt-3 text-slate-800">${title}</h2>
+                <p class="text-sm text-slate-500 mt-1">${desc}</p>
+            </div>
+            
+            <div class="card-deck" id="card-deck">
+                <!-- Cards will render here -->
+            </div>
+
+            <div class="flex justify-center gap-6 mt-8">
+                <button onclick="handleSwipe('left')" class="w-14 h-14 flex items-center justify-center rounded-full bg-white border border-slate-200 text-rose-500 shadow-lg hover:bg-rose-50 hover:scale-105 transition-all">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+                <button onclick="handleSwipe('right')" class="w-14 h-14 flex items-center justify-center rounded-full bg-white border border-slate-200 text-emerald-500 shadow-lg hover:bg-emerald-50 hover:scale-105 transition-all">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                </button>
+            </div>
+            <div class="text-center mt-4">
+                <span class="text-xs font-semibold text-slate-400" id="swipe-counter">0 / 0 Completed</span>
+            </div>
+        `;
+        buildSwipeCards();
+    }
+
+    let cardStartTime = Date.now();
+    let isTransitioning = false;
+
+    function buildSwipeCards() {
+        const deck = document.getElementById("card-deck");
+        deck.innerHTML = "";
+        
+        // Show up to 3 cards stacked
+        const total = swipeCards.length;
+        document.getElementById("swipe-counter").innerText = `${activeSwipeIndex} / ${total} Analyzed`;
+
+        if (activeSwipeIndex >= total) {
+            submitSwipeTelemetry();
             return;
         }
 
-        stepsElements[index].classList.remove('hidden');
-        currentStepText.innerText = index + 1;
-        updateProgress((index / totalSteps) * 100);
-        updateLanguageUI();
-    }
-
-    function updateProgress(percentage) {
-        progressBar.style.width = percentage + '%';
-    }
-
-    function handleSelection(input) {
-        setTimeout(() => {
-            currentStep++;
-            showStep(currentStep);
-        }, 400);
-    }
-
-    function getBestVoice() {
-        const voices = window.speechSynthesis.getVoices();
-        // Priority: Indian English (en-IN) versions first
-        return voices.find(v => v.lang === 'en-IN') ||
-            voices.find(v => v.name.includes('India') || v.name.includes('Indian')) ||
-            voices.find(v => v.lang.startsWith('en')) ||
-            voices[0];
-    }
-
-    async function speakCurrentQuestion() {
-        const qData = questions[currentStep];
-        if (!qData) return;
-
-        const textToSpeak = currentLanguage === 'en' 
-            ? (qData.question_en || qData.question || qData.title) 
-            : (qData.question || qData.title);
+        const cardsToShow = swipeCards.slice(activeSwipeIndex, activeSwipeIndex + 3);
+        
+        cardsToShow.forEach((c, idx) => {
+            const cardEl = document.createElement("div");
+            cardEl.className = "swipe-card";
             
-        // Visual Feedback for AI Buddy
-        const buddyTalkingClass = 'buddy-talking';
-
-        try {
-            // Cancel any current browser synthesis
-            window.speechSynthesis.cancel();
-
-            talkingBuddy.classList.add(buddyTalkingClass);
-            buddyStatus.classList.remove('bg-slate-400');
-            buddyStatus.classList.add('bg-emerald-500');
-
-            // Try Bark AI TTS via backend
-            const response = await fetch(`/api/tts?text=${encodeURIComponent(textToSpeak)}`);
-
-            if (response.ok && response.headers.get('Content-Type').includes('audio')) {
-                const blob = await response.blob();
-                const audioUrl = URL.createObjectURL(blob);
-                const audio = new Audio(audioUrl);
-
-                audio.onended = () => {
-                    talkingBuddy.classList.remove(buddyTalkingClass);
-                    buddyStatus.classList.remove('bg-emerald-500');
-                    buddyStatus.classList.add('bg-slate-400');
-                };
-
-                audio.play();
-            } else {
-                console.log("Bark AI Fallback: Using Browser TTS");
-                throw new Error("Bark API unavailable");
-            }
-        } catch (err) {
-            // Fallback to Native Speech Synthesis
-            const utterance = new SpeechSynthesisUtterance(textToSpeak);
-            utterance.voice = getBestVoice();
-            utterance.rate = 1.0;
-            utterance.pitch = 1.1;
-
-            utterance.onstart = () => {
-                talkingBuddy.classList.add(buddyTalkingClass);
-                buddyStatus.classList.remove('bg-slate-400');
-                buddyStatus.classList.add('bg-emerald-500');
-            };
-
-            utterance.onend = () => {
-                talkingBuddy.classList.remove(buddyTalkingClass);
-                buddyStatus.classList.remove('bg-emerald-500');
-                buddyStatus.classList.add('bg-slate-400');
-            };
-
-            window.speechSynthesis.speak(utterance);
-        }
-    }
-
-    // --- Voice Recording Logic ---
-    let recognition;
-    function initVoiceRecording() {
-        const recordBtn = document.getElementById('record-btn');
-        if (!recordBtn) return;
-
-        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-            const SpeechRecognition = window.speechRecognition || window.webkitSpeechRecognition;
-            recognition = new SpeechRecognition();
-            recognition.continuous = false;
-            recognition.lang = 'en-US';
-            recognition.interimResults = false;
-
-            recognition.onstart = () => {
-                recordBtn.classList.add('bg-red-500', 'text-white', 'animate-pulse');
-                recordBtn.classList.remove('bg-slate-100', 'text-slate-600');
-                window.speechSynthesis.cancel();
-            };
-
-            recognition.onend = () => {
-                recordBtn.classList.remove('bg-red-500', 'text-white', 'animate-pulse');
-                recordBtn.classList.add('bg-slate-100', 'text-slate-600');
-            };
-
-            recognition.onresult = async (event) => {
-                const transcript = event.results[0][0].transcript;
-                console.log("Recorded:", transcript);
-
-                const btnText = document.getElementById('talking-buddy').querySelector('span');
-                const originalEmoji = btnText.innerText;
-                btnText.innerText = '🤔';
-
-                try {
-                    const options = steps[currentStep].querySelectorAll('input[type="radio"]');
-                    const response = await fetch('/assessment/resolve-voice', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            transcript: transcript,
-                            options: Array.from(options).map(opt => ({
-                                value: opt.value,
-                                text: opt.closest('label').querySelector('p').innerText
-                            }))
-                        })
-                    });
-
-                    if (response.ok) {
-                        const data = await response.json();
-                        const targetValue = data.best_match;
-                        const radio = steps[currentStep].querySelector(`input[value="${targetValue}"]`);
-                        if (radio) {
-                            radio.checked = true;
-                            handleSelection(radio);
-                        }
-                    } else {
-                        alert("I couldn't quite match that to an option. Could you try again or click your choice?");
-                    }
-                } catch (err) {
-                    console.error("Resolution error:", err);
-                } finally {
-                    btnText.innerText = originalEmoji;
-                }
-            };
-
-            recordBtn.addEventListener('click', () => {
-                if (recordBtn.classList.contains('bg-red-500')) {
-                    recognition.stop();
-                } else {
-                    recognition.start();
-                }
-            });
-        } else {
-            recordBtn.style.display = 'none';
-        }
-    }
-    // --- End Voice Logic ---
-
-    // Refresh voices on load
-    window.speechSynthesis.onvoiceschanged = () => getBestVoice();
-
-    document.addEventListener('DOMContentLoaded', () => {
-        updateLanguageUI();
-        showStep(currentStep);
-        initVoiceRecording();
-
-        const form = document.getElementById('assessment-form');
-        form.addEventListener('submit', () => {
-            const btn = document.getElementById('reveal-btn');
-            const btnText = document.getElementById('btn-text');
-            const spinner = document.getElementById('btn-spinner');
-            const analyzingText = document.getElementById('analyzing-text');
-
-            btn.disabled = true;
-            btn.classList.add('opacity-75', 'cursor-not-allowed');
-            btnText.innerText = 'Analyzing Profile...';
-            spinner.classList.remove('hidden');
-            analyzingText.classList.remove('hidden');
+            // Stack styling
+            const scale = 1 - idx * 0.04;
+            const yOffset = idx * -12;
+            cardEl.style.transform = `translateY(${yOffset}px) scale(${scale})`;
+            cardEl.style.zIndex = 100 - idx;
+            
+            // Content
+            cardEl.innerHTML = `
+                <div>
+                    <span class="px-2.5 py-1 bg-slate-100 text-slate-600 rounded-full text-[10px] font-bold tracking-wider uppercase">${c.category || 'TASK'}</span>
+                    <h3 class="text-xl font-bold mt-4 text-slate-800 leading-snug">${c.text}</h3>
+                </div>
+                <div class="text-xs text-slate-400 font-medium">
+                    Swipe Right = Yes | Swipe Left = No
+                </div>
+            `;
+            deck.appendChild(cardEl);
         });
-    });
+        
+        cardStartTime = Date.now();
+        isTransitioning = false;
+    }
+
+    function handleSwipe(direction) {
+        if (isTransitioning) return;
+        isTransitioning = true;
+
+        const deck = document.getElementById("card-deck");
+        const topCard = deck.querySelector(".swipe-card");
+        
+        if (!topCard) return;
+
+        // Apply class trigger
+        topCard.classList.add(direction === "right" ? "swiped-right" : "swiped-left");
+        
+        // Calculate telemetry
+        const endTime = Date.now();
+        const duration = endTime - cardStartTime;
+        const activeCard = swipeCards[activeSwipeIndex];
+
+        swipeLogs.push({
+            card_id: activeCard.id,
+            direction: direction,
+            reaction_ms: Math.round(duration * 0.4), // simulated cognitive gap split
+            dwell_ms: duration,
+            hesitation_ms: duration > 2000 ? Math.round((duration - 1000) * 0.8) : 0
+        });
+
+        activeSwipeIndex++;
+
+        setTimeout(() => {
+            buildSwipeCards();
+        }, 300);
+    }
+
+    async function submitSwipeTelemetry() {
+        showLoader("Analyzing response vectors...");
+        try {
+            const res = await fetch("/assessment/api/swipe", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ swipes: swipeLogs })
+            });
+            const data = await res.json();
+            if (data.status === "success") {
+                await refreshState();
+            }
+        } catch (e) {
+            console.error(e);
+            hideLoader();
+        }
+    }
+
+    // --- REALITY CHECK PHASE (GRADE 12 ONLY) ---
+    let realityAnswers = [];
+    let activeRealityIndex = 0;
+
+    function renderRealityPhase() {
+        realityAnswers = [];
+        activeRealityIndex = 0;
+        showRealityCard();
+    }
+
+    function showRealityCard() {
+        const total = activePhaseData.reality_cards.length;
+        if (activeRealityIndex >= total) {
+            submitRealityRatings();
+            return;
+        }
+
+        const rc = activePhaseData.reality_cards[activeRealityIndex];
+        const body = document.getElementById("phase-body");
+        body.innerHTML = `
+            <div class="text-center mb-6">
+                <span class="px-3 py-1 bg-[#ff7b54]/20 text-[#ff7b54] rounded-full text-xs font-bold uppercase tracking-wider">Phase 2: Reality Check</span>
+                <h2 class="text-2xl font-bold mt-3 text-slate-800">Operational Stamina Rating</h2>
+                <p class="text-sm text-slate-500 mt-1">Rate how you actually feel about the daily operational reality of this activity.</p>
+            </div>
+
+            <div class="max-w-md mx-auto bg-white rounded-2xl border border-slate-200/60 p-6 shadow-xl mb-6 transform transition-all duration-300 hover:scale-102">
+                <span class="px-2.5 py-1 bg-amber-100 text-amber-800 rounded-full text-[10px] font-bold tracking-wider uppercase">${rc.macro_cluster}</span>
+                <h3 class="text-lg font-bold text-slate-800 mt-4 leading-relaxed">${rc.text}</h3>
+            </div>
+
+            <div class="flex flex-col sm:flex-row gap-4 justify-center max-w-sm mx-auto">
+                <button onclick="handleRealityRating('Like')" class="flex-1 py-3 px-6 rounded-xl font-bold text-white bg-emerald-500 hover:bg-emerald-600 shadow-lg transition-transform transform active:scale-95">Like</button>
+                <button onclick="handleRealityRating('Fine')" class="flex-1 py-3 px-6 rounded-xl font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 transition-transform transform active:scale-95">Fine</button>
+                <button onclick="handleRealityRating('Dread')" class="flex-1 py-3 px-6 rounded-xl font-bold text-white bg-rose-500 hover:bg-rose-600 shadow-lg transition-transform transform active:scale-95">Dread</button>
+            </div>
+
+            <div class="text-center mt-6">
+                <span class="text-xs font-semibold text-slate-400">${activeRealityIndex} / ${total} Tasks Checked</span>
+            </div>
+        `;
+    }
+
+    function handleRealityRating(rating) {
+        const rc = activePhaseData.reality_cards[activeRealityIndex];
+        realityAnswers.push({
+            card_id: rc.id,
+            rating: rating
+        });
+        activeRealityIndex++;
+        showRealityCard();
+    }
+
+    async function submitRealityRatings() {
+        showLoader("Computing dissonance offsets...");
+        try {
+            const res = await fetch("/assessment/api/reality", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ ratings: realityAnswers })
+            });
+            const data = await res.json();
+            if (data.status === "success") {
+                await refreshState();
+            }
+        } catch (e) {
+            console.error(e);
+            hideLoader();
+        }
+    }
+
+    // --- ALEX MENTOR CHAT (COMMON) ---
+    async function renderChatPhase() {
+        const body = document.getElementById("phase-body");
+        body.innerHTML = `
+            <div class="text-center mb-4">
+                <span class="px-3 py-1 bg-indigo-100 text-indigo-800 rounded-full text-xs font-bold uppercase tracking-wider">Alex Mentorship Session</span>
+                <h2 class="text-xl font-bold mt-2 text-slate-800">Conversational Diagnostics</h2>
+                <p class="text-xs text-slate-500 mt-0.5">Alex is asking oblique task & environment questions to clarify your core interests.</p>
+            </div>
+
+            <div class="border border-slate-200/50 bg-white/40 rounded-2xl p-4 flex flex-col justify-between h-[360px]">
+                <div class="chat-container flex flex-col" id="chat-messages-box">
+                    <!-- Chat bubbles populate here -->
+                </div>
+                
+                <div class="flex gap-2 pt-3 border-t border-slate-200/50 mt-2">
+                    <input type="text" id="chat-input" placeholder="Type your response to Alex..." class="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-primary text-sm font-medium bg-white/80" onkeydown="if(event.key === 'Enter') sendChatMessage()">
+                    <button onclick="sendChatMessage()" class="px-5 py-2.5 rounded-xl bg-primary text-white font-bold hover:bg-primary-light transition-colors text-sm">Send</button>
+                </div>
+            </div>
+        `;
+
+        // Load existing messages or initialize
+        const hist = activePhaseData.chat_messages || [];
+        if (hist.length === 0) {
+            // Trigger initialization
+            await sendChatMessage(true);
+        } else {
+            renderChatHistory(hist);
+        }
+    }
+
+    function renderChatHistory(hist) {
+        const box = document.getElementById("chat-messages-box");
+        box.innerHTML = "";
+        hist.forEach(m => {
+            const bubble = document.createElement("div");
+            bubble.className = `chat-bubble ${m.role === 'ai' ? 'ai' : 'user'}`;
+            bubble.innerText = m.content;
+            box.appendChild(bubble);
+        });
+        box.scrollTop = box.scrollHeight;
+    }
+
+    async function sendChatMessage(isInit = false) {
+        const input = document.getElementById("chat-input");
+        const msg = isInit ? "" : input.value.trim();
+        if (!isInit && !msg) return;
+
+        if (input) input.value = "";
+        
+        // Optimistic UI update
+        if (!isInit) {
+            const box = document.getElementById("chat-messages-box");
+            const bubble = document.createElement("div");
+            bubble.className = "chat-bubble user";
+            bubble.innerText = msg;
+            box.appendChild(bubble);
+            box.scrollTop = box.scrollHeight;
+        }
+
+        document.getElementById("bottom-status").innerText = "Alex typing...";
+        
+        try {
+            const res = await fetch("/assessment/api/chat", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ message: msg })
+            });
+            const data = await res.json();
+            document.getElementById("bottom-status").innerText = "Processing";
+            
+            if (data.status === "success") {
+                if (data.phase_complete) {
+                    await refreshState();
+                } else {
+                    // Update chat list
+                    const box = document.getElementById("chat-messages-box");
+                    const aiBubble = document.createElement("div");
+                    aiBubble.className = "chat-bubble ai";
+                    aiBubble.innerText = data.message;
+                    box.appendChild(aiBubble);
+                    box.scrollTop = box.scrollHeight;
+                    
+                    // Voice synth trigger
+                    const speech = new SpeechSynthesisUtterance(data.message);
+                    const voices = speechSynth.getVoices();
+                    const preferredVoice = voices.find(v => v.lang.startsWith("en-IN")) || voices.find(v => v.lang.startsWith("en"));
+                    if (preferredVoice) speech.voice = preferredVoice;
+                    speechSynth.speak(speech);
+                }
+            }
+        } catch (e) {
+            console.error(e);
+            document.getElementById("bottom-status").innerText = "Error";
+        }
+    }
+
+    // --- PROXY QUESTIONS PHASE (COMMON) ---
+    let proxyAnswers = [];
+    let activeProxyIndex = 0;
+
+    function renderProxyPhase() {
+        proxyAnswers = [];
+        activeProxyIndex = 0;
+        showProxyQuestion();
+    }
+
+    function showProxyQuestion() {
+        const total = activePhaseData.proxy_questions.length;
+        if (activeProxyIndex >= total) {
+            submitProxyAnswers();
+            return;
+        }
+
+        const q = activePhaseData.proxy_questions[activeProxyIndex];
+        const body = document.getElementById("phase-body");
+        body.innerHTML = `
+            <div class="text-center mb-6">
+                <span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-bold uppercase tracking-wider">Demographic & Context Metrics</span>
+                <h2 class="text-2xl font-bold mt-3 text-slate-800">${q.question || q.text}</h2>
+                <p class="text-sm text-slate-500 mt-1">This helps anchor calculations within your surrounding operational environment.</p>
+            </div>
+
+            <div class="grid grid-cols-1 gap-3 max-w-md mx-auto">
+                ${q.options.map(opt => `
+                    <button onclick="handleProxySelection('${q.id}', '${opt.value || opt.text}')" class="w-full text-left p-4 rounded-xl border border-slate-200/80 bg-white hover:bg-teal-50/50 hover:border-primary-light transition-all flex items-center justify-between group">
+                        <span class="font-semibold text-slate-700 group-hover:text-primary-dark">${opt.text}</span>
+                        <svg class="w-5 h-5 text-slate-400 group-hover:text-primary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                    </button>
+                `).join('')}
+            </div>
+
+            <div class="text-center mt-6">
+                <span class="text-xs font-semibold text-slate-400">${activeProxyIndex} / ${total} Context Markers</span>
+            </div>
+        `;
+    }
+
+    function handleProxySelection(qId, val) {
+        proxyAnswers.push({
+            question_id: qId,
+            answer: val
+        });
+        activeProxyIndex++;
+        showProxyQuestion();
+    }
+
+    async function submitProxyAnswers() {
+        showLoader("Compiling environment context vectors...");
+        try {
+            const res = await fetch("/assessment/api/proxy", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ answers: proxyAnswers })
+            });
+            const data = await res.json();
+            if (data.status === "success") {
+                await refreshState();
+            }
+        } catch (e) {
+            console.error(e);
+            hideLoader();
+        }
+    }
+
+    // --- SCENARIOS DILEMMAS PHASE (GRADE 10 ONLY) ---
+    let scenarioAnswers = [];
+    let activeScenarioIndex = 0;
+
+    function renderScenariosPhase() {
+        scenarioAnswers = [];
+        activeScenarioIndex = 0;
+        showScenarioQuestion();
+    }
+
+    function showScenarioQuestion() {
+        const total = activePhaseData.scenarios.length;
+        if (activeScenarioIndex >= total) {
+            submitScenarioAnswers();
+            return;
+        }
+
+        const sc = activePhaseData.scenarios[activeScenarioIndex];
+        const body = document.getElementById("phase-body");
+        body.innerHTML = `
+            <div class="text-center mb-6">
+                <span class="px-3 py-1 bg-amber-100 text-amber-800 rounded-full text-xs font-bold uppercase tracking-wider">Phase 4: Practical Dilemmas</span>
+                <h2 class="text-xl font-bold mt-3 text-slate-800 leading-snug">${sc.scenario}</h2>
+                <p class="text-sm text-slate-500 mt-1">Select the choice you'd honestly execute under realistic constraints.</p>
+            </div>
+
+            <div class="grid grid-cols-1 gap-3 max-w-md mx-auto">
+                ${sc.choices.map(choice => `
+                    <button onclick="handleScenarioSelection('${sc.id}', '${choice.tag}')" class="w-full text-left p-4 rounded-xl border border-slate-200/80 bg-white hover:bg-teal-50/50 hover:border-primary-light transition-all flex items-center justify-between group">
+                        <span class="font-medium text-slate-700 group-hover:text-primary-dark">${choice.text}</span>
+                        <svg class="w-5 h-5 text-slate-400 group-hover:text-primary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                    </button>
+                `).join('')}
+            </div>
+
+            <div class="text-center mt-6">
+                <span class="text-xs font-semibold text-slate-400">${activeScenarioIndex} / ${total} Dilemmas Resolved</span>
+            </div>
+        `;
+    }
+
+    function handleScenarioSelection(scId, tag) {
+        scenarioAnswers.push({
+            scenario_id: scId,
+            selected_tag: tag
+        });
+        activeScenarioIndex++;
+        showScenarioQuestion();
+    }
+
+    async function submitScenarioAnswers() {
+        showLoader("Analyzing logic mappings...");
+        try {
+            const res = await fetch("/assessment/api/scenarios", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ answers: scenarioAnswers })
+            });
+            const data = await res.json();
+            if (data.status === "success") {
+                await refreshState();
+            }
+        } catch (e) {
+            console.error(e);
+            hideLoader();
+        }
+    }
+
+    // --- NOISE CANCELLATION ENGINE TRANSITION (GRADE 12 ONLY) ---
+    async function handleNoiseCancellationPhase() {
+        showLoader("Running noise-cancellation matrices...");
+        try {
+            const res = await fetch("/assessment/api/noise-cancel", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" }
+            });
+            const data = await res.json();
+            if (data.status === "success") {
+                // Show noise report summary briefly
+                const body = document.getElementById("phase-body");
+                body.innerHTML = `
+                    <div class="text-center py-10 flex flex-col items-center justify-center">
+                        <div class="w-20 h-20 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-500 mb-6 animate-bounce">
+                            <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                        </div>
+                        <h2 class="text-2xl font-bold text-slate-800">Noise Shield Activated</h2>
+                        <p class="text-slate-500 max-w-md mt-2">Dampened status bias and external projections. Global distortion ratio: <span class="font-bold text-teal-600">${data.noise_metrics.global_noise_modifiers.global_distortion_index}</span></p>
+                        
+                        <button onclick="advanceAfterNoise()" class="mt-8 px-8 py-3 bg-primary text-white rounded-xl font-bold hover:bg-primary-light transition-all shadow-md">Enter Worldview Lens</button>
+                    </div>
+                `;
+                hideLoader();
+            }
+        } catch (e) {
+            console.error(e);
+            hideLoader();
+        }
+    }
+
+    async function advanceAfterNoise() {
+        await refreshState();
+    }
+
+    // --- WORLDVIEW COGNITIVE LENS (GRADE 12 ONLY) ---
+    let iqAnswers = [];
+    let eqAnswers = [];
+    let currentIqIndex = 0;
+    let currentEqIndex = 0;
+    let iqStartTime = 0;
+
+    function renderWorldviewPhase() {
+        iqAnswers = [];
+        eqAnswers = [];
+        currentIqIndex = 0;
+        currentEqIndex = 0;
+        showIqStep();
+    }
+
+    function showIqStep() {
+        const total = activePhaseData.iq_questions.length;
+        if (currentIqIndex >= total) {
+            showEqStep();
+            return;
+        }
+
+        const q = activePhaseData.iq_questions[currentIqIndex];
+        const body = document.getElementById("phase-body");
+        body.innerHTML = `
+            <div class="text-center mb-6">
+                <span class="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-bold uppercase tracking-wider">Phase 6A: Analytical Aptitude</span>
+                <h2 class="text-xl font-bold text-slate-800 mt-2">Deduce Context and Concepts</h2>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div class="bg-slate-50 border border-slate-200/60 p-5 rounded-2xl max-h-[250px] overflow-y-auto">
+                    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Comprehension Passage</h3>
+                    <p class="text-sm text-slate-600 leading-relaxed font-medium">${activePhaseData.iq_text}</p>
+                </div>
+                <div>
+                    <h3 class="text-md font-bold text-slate-800 mb-4">${q.text}</h3>
+                    <div class="grid grid-cols-1 gap-2.5">
+                        ${q.options.map(opt => `
+                            <button onclick="handleIqSelection('${q.id}', ${opt.is_correct})" class="w-full text-left p-3.5 rounded-xl border border-slate-200 bg-white hover:bg-teal-50/50 hover:border-primary-light transition-all flex items-center justify-between group">
+                                <span class="font-medium text-slate-700 group-hover:text-primary-dark">${opt.text}</span>
+                            </button>
+                        `).join('')}
+                    </div>
+                </div>
+            </div>
+
+            <div class="text-center">
+                <span class="text-xs font-semibold text-slate-400">${currentIqIndex} / ${total} Problems Solved</span>
+            </div>
+        `;
+        iqStartTime = Date.now();
+    }
+
+    function handleIqSelection(qId, isCorrect) {
+        const duration = Math.round((Date.now() - iqStartTime) / 1000);
+        iqAnswers.push({
+            question_id: qId,
+            is_correct: isCorrect,
+            latency: duration
+        });
+        currentIqIndex++;
+        showIqStep();
+    }
+
+    function showEqStep() {
+        const total = activePhaseData.eq_vignettes.length;
+        if (currentEqIndex >= total) {
+            submitWorldviewLens();
+            return;
+        }
+
+        const v = activePhaseData.eq_vignettes[currentEqIndex];
+        const body = document.getElementById("phase-body");
+        body.innerHTML = `
+            <div class="text-center mb-6">
+                <span class="px-3 py-1 bg-pink-100 text-pink-800 rounded-full text-xs font-bold uppercase tracking-wider">Phase 6B: Emotional Intelligence Proxy</span>
+                <h2 class="text-xl font-bold text-slate-800 mt-2">${v.title}</h2>
+                <p class="text-sm text-slate-500 mt-1">${v.situation}</p>
+            </div>
+
+            <div class="max-w-xl mx-auto space-y-6">
+                <div>
+                    <label class="block text-sm font-bold text-slate-600 mb-2">Select your resolution strategy:</label>
+                    <div class="grid grid-cols-1 gap-2.5">
+                        ${v.strategies.map(s => `
+                            <button id="strategy-btn-${s.style}" onclick="selectEqStrategy('${s.style}')" class="eq-strat-btn w-full text-left p-3.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300 transition-all flex items-center justify-between group">
+                                <span class="font-medium text-slate-700">${s.text}</span>
+                            </button>
+                        `).join('')}
+                    </div>
+                </div>
+
+                <div class="bg-slate-50 border border-slate-200/50 p-5 rounded-2xl">
+                    <div class="flex justify-between items-center mb-2">
+                        <label class="text-sm font-bold text-slate-600">Rate your internal distress (slider):</label>
+                        <span class="text-teal-600 font-extrabold text-sm" id="distress-value">50%</span>
+                    </div>
+                    <input type="range" id="distress-slider" min="0" max="100" value="50" oninput="document.getElementById('distress-value').innerText = this.value + '%'" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-primary">
+                </div>
+
+                <div class="text-right">
+                    <button onclick="saveEqStep()" class="px-8 py-3 bg-primary text-white font-bold rounded-xl hover:bg-primary-light transition-all shadow-md">Next Vignette</button>
+                </div>
+            </div>
+        `;
+    }
+
+    let activeStyle = "";
+
+    function selectEqStrategy(style) {
+        activeStyle = style;
+        document.querySelectorAll(".eq-strat-btn").forEach(btn => {
+            btn.classList.remove("border-primary-light", "bg-teal-50/50");
+        });
+        document.getElementById(`strategy-btn-${style}`).classList.add("border-primary-light", "bg-teal-50/50");
+    }
+
+    function saveEqStep() {
+        if (!activeStyle) {
+            alert("Please select a resolution strategy first!");
+            return;
+        }
+        const distress = parseInt(document.getElementById("distress-slider").value);
+        eqAnswers.push({
+            vignette_title: activePhaseData.eq_vignettes[currentEqIndex].title,
+            style: activeStyle,
+            distress_slider: distress
+        });
+        currentEqIndex++;
+        activeStyle = "";
+        showEqStep();
+    }
+
+    async function submitWorldviewLens() {
+        showLoader("Calculating cognitive latency modifiers...");
+        try {
+            const res = await fetch("/assessment/api/worldview", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ iq: iqAnswers, eq: eqAnswers })
+            });
+            const data = await res.json();
+            if (data.status === "success") {
+                await refreshState();
+            }
+        } catch (e) {
+            console.error(e);
+            hideLoader();
+        }
+    }
+
+    // --- PROACTIVE FUTURE SELF RECONCILIATION (GRADE 12 ONLY) ---
+    let simulationAnswers = [];
+    let activeSimIndex = 0;
+
+    function renderFutureSelfPhase() {
+        simulationAnswers = [];
+        activeSimIndex = 0;
+        showSimulationCard();
+    }
+
+    function showSimulationCard() {
+        const total = activePhaseData.simulations.length;
+        if (activeSimIndex >= total) {
+            submitFutureReconciliation();
+            return;
+        }
+
+        const sim = activePhaseData.simulations[activeSimIndex];
+        const body = document.getElementById("phase-body");
+        body.innerHTML = `
+            <div class="text-center mb-6">
+                <span class="px-3 py-1 bg-amber-100 text-amber-800 rounded-full text-xs font-bold uppercase tracking-wider">Phase 7: Future Self Alignment</span>
+                <h2 class="text-2xl font-bold mt-3 text-slate-800">${sim.career_path} Simulation</h2>
+                <p class="text-sm text-slate-500 mt-1">Read the projection and rate your gut emotional fit (Like / Fine / Dread).</p>
+            </div>
+
+            <div class="max-w-lg mx-auto bg-white rounded-2xl border border-slate-200/60 p-6 shadow-xl mb-6">
+                <span class="text-xs font-extrabold text-[#ff7b54] uppercase tracking-wider">Projection</span>
+                <p class="text-sm text-slate-600 leading-relaxed font-medium mt-2">${sim.projection_text}</p>
+                <div class="mt-4 pt-4 border-t border-slate-100 flex justify-between text-xs font-semibold text-slate-400">
+                    <span>Work Hours: ${sim.weekly_work_hours} hrs</span>
+                    <span>Stamina Threshold: ${sim.stamina_demand_score}/100</span>
+                </div>
+            </div>
+
+            <div class="flex flex-col sm:flex-row gap-4 justify-center max-w-sm mx-auto">
+                <button onclick="handleSimulationRating('Like')" class="flex-1 py-3 px-6 rounded-xl font-bold text-white bg-emerald-500 hover:bg-emerald-600 shadow-lg transition-transform transform active:scale-95">Like</button>
+                <button onclick="handleSimulationRating('Fine')" class="flex-1 py-3 px-6 rounded-xl font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 transition-transform transform active:scale-95">Fine</button>
+                <button onclick="handleSimulationRating('Dread')" class="flex-1 py-3 px-6 rounded-xl font-bold text-white bg-rose-500 hover:bg-rose-600 shadow-lg transition-transform transform active:scale-95">Dread</button>
+            </div>
+
+            <div class="text-center mt-6">
+                <span class="text-xs font-semibold text-slate-400">${activeSimIndex} / ${total} Scenarios Simulated</span>
+            </div>
+        `;
+    }
+
+    function handleSimulationRating(rating) {
+        const sim = activePhaseData.simulations[activeSimIndex];
+        simulationAnswers.push({
+            career_path: sim.career_path,
+            user_selection: rating
+        });
+        activeSimIndex++;
+        showSimulationCard();
+    }
+
+    async function submitFutureReconciliation() {
+        showLoader("Aligning trajectory anchors...");
+        try {
+            const res = await fetch("/assessment/api/future-self", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ ratings: simulationAnswers })
+            });
+            const data = await res.json();
+            if (data.status === "success") {
+                await refreshState();
+            }
+        } catch (e) {
+            console.error(e);
+            hideLoader();
+        }
+    }
+
+    // --- FINAL COMPILER SCREEN (COMMON) ---
+    function renderCompilePhase() {
+        const body = document.getElementById("phase-body");
+        body.innerHTML = `
+            <div class="text-center py-10 flex flex-col items-center justify-center">
+                <div class="w-20 h-20 rounded-full bg-teal-50 border border-teal-200 flex items-center justify-center text-teal-600 mb-6 animate-pulse">
+                    <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+                </div>
+                <h2 class="text-2xl font-bold text-slate-800">Compiling Trajectory Analysis</h2>
+                <p class="text-slate-500 max-w-md mt-2">Almost ready! Our psychometric compilers are aggregating your vectors to formulate your primary recommended tracks.</p>
+                
+                <button onclick="compileFinalResults()" id="compile-btn" class="mt-8 px-10 py-4 bg-primary text-white rounded-xl font-bold hover:bg-primary-light transition-all shadow-md transform hover:scale-105">Compile Final Report</button>
+                <p id="compiling-indicator" class="hidden text-teal-600 font-extrabold mt-4 animate-pulse">Running compilation shaders... Please hold</p>
+            </div>
+        `;
+    }
+
+    async function compileFinalResults() {
+        const btn = document.getElementById("compile-btn");
+        const ind = document.getElementById("compiling-indicator");
+        btn.disabled = true;
+        btn.classList.add("opacity-50", "cursor-not-allowed");
+        ind.classList.remove("hidden");
+        
+        try {
+            const res = await fetch("/assessment/api/compile", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" }
+            });
+            const data = await res.json();
+            if (data.status === "success") {
+                window.location.href = data.redirect;
+            } else {
+                alert("Compilation failed. Please try again.");
+                btn.disabled = false;
+                btn.classList.remove("opacity-50", "cursor-not-allowed");
+                ind.classList.add("hidden");
+            }
+        } catch (e) {
+            console.error(e);
+            alert("System compilation failed. Check connections.");
+            btn.disabled = false;
+            btn.classList.remove("opacity-50", "cursor-not-allowed");
+            ind.classList.add("hidden");
+        }
+    }
 </script>
 {% endblock %}

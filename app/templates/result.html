@@ -409,9 +409,18 @@
 
                 <!-- Logic B: Class 12+ (Multiple Options) -->
                 {% else %}
-                <div class="mb-8">
-                    <h2 class="text-3xl font-bold text-slate-900 mb-2">Recommended Career Paths</h2>
-                    <p class="text-slate-500">Based on your detailed psychometrics and scenario responses.</p>
+                <div class="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div>
+                        <h2 class="text-3xl font-bold text-slate-900 mb-2">Recommended Career Paths</h2>
+                        <p class="text-slate-500">Based on your detailed psychometrics and scenario responses.</p>
+                    </div>
+                    {% if result.assessment_report and result.assessment_report.get('system_diagnostics') %}
+                    <div class="bg-teal-50 border border-teal-200 rounded-2xl p-4 max-w-md w-full">
+                        <span class="text-[10px] font-bold text-teal-800 uppercase tracking-widest block mb-1">🚀 Telemetry Diagnostics</span>
+                        <p class="text-xs text-teal-700 font-medium leading-relaxed">{{ result.assessment_report.get('system_diagnostics', {}).get('noise_report_summary', '') }}</p>
+                        <p class="text-[10px] text-teal-600/80 font-medium mt-1">Gut Check Reconciliation: {{ result.assessment_report.get('system_diagnostics', {}).get('gut_check_reconciliation_analysis', 'None') }}</p>
+                    </div>
+                    {% endif %}
                 </div>
 
                 <div class="space-y-6">

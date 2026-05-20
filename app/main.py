@@ -48,6 +48,7 @@ from itsdangerous import URLSafeTimedSerializer
 from .data.career_keywords import career_keywords
 from .utils.resource_aggregator import ResourceAggregator
 from .services import simulation_service
+from .services import assessment_engine
 load_dotenv()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
@@ -251,7 +252,15 @@ def run_migrations():
                            ('simulation_career', 'VARCHAR'), ('simulation_questions', 'JSON'),
                            ('simulation_answers', 'JSON'), ('simulation_evaluation', 'JSON'),
                            ('simulations_completed', 'INTEGER DEFAULT 0'), ('simulation_paid', 'BOOLEAN DEFAULT FALSE'),
-                           ('simulation_credits', 'INTEGER DEFAULT 0')]:
+                           ('simulation_credits', 'INTEGER DEFAULT 0'),
+                           ('student_type', "VARCHAR DEFAULT '10th'"), ('current_phase', 'INTEGER DEFAULT 1'),
+                           ('intake_turn', 'INTEGER DEFAULT 1'), ('intake_name', 'VARCHAR'),
+                           ('intake_grade', 'INTEGER'), ('intake_stream', 'VARCHAR'),
+                           ('telemetry_logs', 'JSON'), ('reality_answers', 'JSON'),
+                           ('chat_messages', 'JSON'), ('chat_turn', 'INTEGER DEFAULT 0'),
+                           ('proxy_answers', 'JSON'), ('scenario_answers', 'JSON'),
+                           ('worldview_answers', 'JSON'), ('future_self_answers', 'JSON'),
+                           ('assessment_report', 'JSON')]:
                 if col not in ar_cols: migrations.append(f"ALTER TABLE assessment_results ADD COLUMN {col} {ty}")
             migrations.append("CREATE INDEX IF NOT EXISTS ix_assessment_results_recommended_stream ON assessment_results (recommended_stream)")
             migrations.append("CREATE INDEX IF NOT EXISTS ix_assessment_results_phase_2_category ON assessment_results (phase_2_category)")
@@ -940,18 +949,43 @@ async def select_role(
 # --- Assessment Routes ---
 
 @app.get("/assessment/start")
-async def assessment_start(request: Request, class_level: str, db: Session = Depends(get_db)):
-    """Phase 1: Class Selection & Reset for New Attempt"""
+async def assessment_start(
+    request: Request,
+    class_level: str,
+    stream: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """Phase 0: Class Selection & Reset for New Attempt"""
     user = get_current_user(request, db)
     if not user:
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+    
+    student_type = "10th" if "10" in class_level else "12th"
     
     try:
         # Check/Create Result
         result = db.query(models.AssessmentResult).filter(models.AssessmentResult.user_id == user.id).first()
         
         if result:
-            # Clear all previous progress fields to ensure "Output Changes Accordingly" on retake
+            # Clear all previous progress fields
+            result.selected_class = class_level
+            result.student_type = student_type
+            result.current_phase = 1
+            result.intake_turn = 1
+            result.intake_name = user.full_name
+            result.intake_grade = 10 if student_type == "10th" else 12
+            result.intake_stream = stream
+            result.telemetry_logs = None
+            result.reality_answers = None
+            result.chat_messages = None
+            result.chat_turn = 0
+            result.proxy_answers = None
+            result.scenario_answers = None
+            result.worldview_answers = None
+            result.future_self_answers = None
+            result.assessment_report = None
+            
+            # Clear legacy fields
             result.phase_2_category = None
             result.personality = None
             result.goal_status = None
@@ -967,18 +1001,20 @@ async def assessment_start(request: Request, class_level: str, db: Session = Dep
             result.final_analysis = None
             result.stream_pros = None
             result.stream_cons = None
-            
-            # Clear current simulation attempt if retaking, but keep simulations_completed & simulation_paid
-            result.simulation_career = None
-            result.simulation_questions = None
-            result.simulation_answers = None
-            result.simulation_evaluation = None
         else:
-            result = models.AssessmentResult(user_id=user.id)
+            result = models.AssessmentResult(
+                user_id=user.id,
+                selected_class=class_level,
+                student_type=student_type,
+                current_phase=1,
+                intake_turn=1,
+                intake_name=user.full_name,
+                intake_grade=10 if student_type == "10th" else 12,
+                intake_stream=stream,
+                chat_turn=0
+            )
             db.add(result)
         
-        # Save Phase 1 Selection
-        result.selected_class = class_level
         db.commit()
     except Exception as e:
         print(f"Assessment start error: {e}")
@@ -996,6 +1032,19 @@ async def assessment_reset(request: Request, db: Session = Depends(get_db)):
     
     result = db.query(models.AssessmentResult).filter(models.AssessmentResult.user_id == user.id).first()
     if result:
+        result.current_phase = 1
+        result.intake_turn = 1
+        result.telemetry_logs = None
+        result.reality_answers = None
+        result.chat_messages = None
+        result.chat_turn = 0
+        result.proxy_answers = None
+        result.scenario_answers = None
+        result.worldview_answers = None
+        result.future_self_answers = None
+        result.assessment_report = None
+        
+        # Clear legacy fields
         result.phase_2_category = None
         result.personality = None
         result.goal_status = None
@@ -1011,17 +1060,9 @@ async def assessment_reset(request: Request, db: Session = Depends(get_db)):
         result.final_analysis = None
         result.stream_pros = None
         result.stream_cons = None
-        
-        result.simulation_career = None
-        result.simulation_questions = None
-        result.simulation_answers = None
-        result.simulation_evaluation = None
         db.commit()
     
     return RedirectResponse(url="/dashboard?message=Assessment+reset+successfully", status_code=status.HTTP_302_FOUND)
-
-
-from .data.phase2_questions_v2 import phase2_questions
 
 @app.get("/assessment", response_class=HTMLResponse)
 async def assessment_page(request: Request, db: Session = Depends(get_db)):
@@ -1029,173 +1070,444 @@ async def assessment_page(request: Request, db: Session = Depends(get_db)):
     if not user:
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
     
-    # Select a balanced subset of 10-11 questions (1 from each of the 11 logical categories)
-    # Categories: Learning Style, Decision Making, Problem Solving, Social Behaviour, Work Style, 
-    # Creativity, Career Inclination, Risk Taking, Planning vs Action, Curiosity vs Depth
-    import random
-    categories = {}
-    for q in phase2_questions:
-        cat = q.get("title", "General")
-        if cat not in categories: categories[cat] = []
-        categories[cat].append(q)
-    
-    # Map category images to questions
-    category_images = {
-        "Learning Style": "/static/images/assessment/Learning_Style.png",
-        "Decision Making": "/static/images/assessment/Decision_making.png",
-        "Problem Solving": "/static/images/assessment/Problem_Solving.png",
-        "Social Behaviour": "/static/images/assessment/Social_Behaviour.png",
-        "Work Style": "/static/images/assessment/Work_Style.png",
-        "Creativity": "/static/images/assessment/Creativity.png",
-        "Career Inclination": "/static/images/assessment/Career_Inclination.png",
-        "Risk Taking": "/static/images/assessment/Risk_taking.png",
-        "Planning vs Action": "/static/images/assessment/Planning_vs_Action.png",
-        "Curiosity vs Depth": "/static/images/assessment/curiosity_vs_depth.png"
-    }
+    result = db.query(models.AssessmentResult).filter(models.AssessmentResult.user_id == user.id).first()
+    if not result:
+        return RedirectResponse(url="/dashboard", status_code=status.HTTP_302_FOUND)
+        
+    return templates.TemplateResponse(request=request, name="assessment.html", context={"user": user, "result": result})
 
-    selected_questions = []
-    for cat_name, cat_qs in categories.items():
-        # Select one random question from this category and copy it to add image path
-        q_orig = random.choice(cat_qs)
-        q_copy = q_orig.copy()
-        q_copy["category_image"] = category_images.get(cat_name, "/static/images/assessment/Learning_Style.png")
-        selected_questions.append(q_copy)
-    
-    # Shuffle the final subset
-    random.shuffle(selected_questions)
+# --- Assessment API Router for Multi-Phase Flow ---
 
-    try:
-        template = templates.get_template("assessment.html")
-        content = template.render({"request": request, "user": user, "questions": selected_questions})
-        return HTMLResponse(content=content)
-    except Exception as e:
-        import traceback
-        return HTMLResponse(content=f"Template Error: {e}<br><pre>{traceback.format_exc()}</pre>", status_code=500)
-
-@app.post("/assessment/submit")
-async def assessment_submit(
-    request: Request,
-    db: Session = Depends(get_db)
-):
+@app.get("/assessment/api/state")
+async def assessment_api_state(request: Request, db: Session = Depends(get_db)):
     user = get_current_user(request, db)
     if not user:
-        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
-
-    form_data = await request.form()
-    user_answers_data = {}
-    archetype_scores = {
-        "Focused Specialist": 0,
-        "Adaptive Explorer": 0,
-        "Dynamic Generalist": 0,
-        "Quiet Explorer": 0,
-        "Strategic Builder": 0,
-        "Visionary Leader": 0
+        raise HTTPException(status_code=401, detail="Unauthorized")
+        
+    result = db.query(models.AssessmentResult).filter(models.AssessmentResult.user_id == user.id).first()
+    if not result:
+        return {"status": "no_assessment"}
+        
+    return {
+        "status": "success",
+        "student_type": result.student_type,
+        "current_phase": result.current_phase,
+        "intake_name": result.intake_name,
+        "intake_grade": result.intake_grade,
+        "intake_stream": result.intake_stream,
+        "chat_turn": result.chat_turn
     }
-    
-    # Map all existing questions for lookup
-    questions_map = {q["id"]: q for q in phase2_questions}
 
-    for q_id, val in form_data.items():
-        if q_id in questions_map:
-            q_data = questions_map[q_id]
-            selected_opt = next((opt for opt in q_data["options"] if opt["value"] == val), None)
-            if selected_opt:
-                tag = selected_opt.get("tag")
-                if tag in archetype_scores:
-                    archetype_scores[tag] += 1
-                user_answers_data[q_data.get("question", q_data["id"])] = selected_opt["text"]
-
-    # Determine Winner by categorical mapping (Majority Vote)
-    sorted_scores = sorted(archetype_scores.items(), key=lambda x: (-x[1], x[0]))
-    winner_archetype = sorted_scores[0][0]
+@app.get("/assessment/api/questions")
+async def assessment_api_questions(request: Request, db: Session = Depends(get_db)):
+    user = get_current_user(request, db)
+    if not user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+        
+    result = db.query(models.AssessmentResult).filter(models.AssessmentResult.user_id == user.id).first()
+    if not result:
+        raise HTTPException(status_code=404, detail="Assessment not found")
+        
+    student_type = result.student_type or "10th"
+    phase = result.current_phase or 1
     
-    # 2. Construct Prompt for AI Reasoning (passing the calculated result)
-    prompt = f"""
-    You are an expert student career psychologist analyzing a comprehensive psychometric assessment.
-    
-    The user has been classified into the following Archetype based on categorical mappings:
-    ARCHETYPE: {winner_archetype}
-    
-    SCORING BREAKDOWN:
-    {json.dumps(archetype_scores, indent=2)}
-    
-    USER ANSWERS SNAPSHOT:
-    {json.dumps(user_answers_data, indent=2)}
+    if student_type == "10th":
+        data = assessment_engine.load_grade_data("10th")
+        if phase == 1:
+            import random
+            cards = data.get("cards", [])
+            shuffled = list(cards)
+            random.seed(result.id or 42)
+            random.shuffle(shuffled)
+            return {"cards": shuffled[:20]}
+        elif phase == 2:
+            return {"chat_messages": result.chat_messages or [], "chat_turn": result.chat_turn or 0}
+        elif phase == 3:
+            return {"proxy_questions": data.get("proxy_questions", [])}
+        elif phase == 4:
+            return {"scenarios": data.get("scenarios", [])}
+        else:
+            return {"status": "phase_not_applicable"}
+    else:
+        if phase == 1:
+            import random
+            data = assessment_engine.load_grade_data("12th")
+            cards = data.get("cards", [])
+            shuffled = list(cards)
+            random.seed(result.id or 42)
+            random.shuffle(shuffled)
+            return {"cards": shuffled[:30]}
+        elif phase == 2:
+            reality_cards = assessment_engine.load_g12_reality_cards()
+            return {"reality_cards": reality_cards}
+        elif phase == 3:
+            return {"chat_messages": result.chat_messages or [], "chat_turn": result.chat_turn or 0}
+        elif phase == 4:
+            data = assessment_engine.load_grade_data("12th")
+            return {"proxy_questions": data.get("proxy_questions", [])}
+        elif phase == 5:
+            return {"status": "noise_cancel_transition"}
+        elif phase == 6:
+            metrics = assessment_engine.load_g12_worldview_metrics()
+            return {
+                "iq_text": metrics.get("part_a_iq_proxy", {}).get("dense_passage", ""),
+                "iq_questions": metrics.get("part_a_iq_proxy", {}).get("questions", []),
+                "eq_vignettes": metrics.get("part_b_eq_proxy", {}).get("vignettes", [])
+            }
+        elif phase == 7:
+            sims = assessment_engine.load_g12_future_simulations()
+            return {"simulations": sims.get("future_scenarios", [])}
+        else:
+            return {"status": "phase_not_applicable"}
 
-    TASK:
-    1. Validate the {winner_archetype} classification in your reasoning.
-    2. Provide a "personality" tag (Introvert/Ambivert/Extrovert) based on their Social Behaviour answers.
-    3. Provide a "goal_status" (Goal Aware/Exploring) based on their Career Inclination answers.
-    4. Write a 2-3 sentence personalized reasoning explaining why they fit this archetype.
+@app.post("/assessment/api/swipe")
+async def assessment_api_swipe(request: Request, payload: dict, db: Session = Depends(get_db)):
+    user = get_current_user(request, db)
+    if not user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+        
+    result = db.query(models.AssessmentResult).filter(models.AssessmentResult.user_id == user.id).first()
+    if not result:
+        raise HTTPException(status_code=404, detail="Assessment not found")
+        
+    swipes = payload.get("swipes", [])
+    result.telemetry_logs = swipes
+    
+    student_type = result.student_type or "10th"
+    if student_type == "10th":
+        metrics = assessment_engine.calculate_telemetry_metrics(swipes, "10th")
+        result.personality = json.dumps(metrics.get("latent_profile", {}))
+        result.confidence = metrics.get("consistency_index", 0.85)
+    else:
+        data = assessment_engine.load_grade_data("12th")
+        metrics = assessment_engine.calculate_telemetry_metrics_g12(swipes, data.get("cards", []))
+        result.personality = json.dumps(metrics.get("computed_latent_vector", {}))
+        result.confidence = 1.0 - (0.5 if metrics.get("telemetry_metrics", {}).get("profile_integrity_compromised", False) else 0.0)
+        result.raw_answers = metrics
+        
+    result.current_phase = 2
+    db.commit()
+    
+    return {"status": "success", "next_phase": 2}
 
-    Output must be VALID JSON only.
-    Structure:
-    {{
-      "personality": "String",
-      "goal_status": "String",
-      "phase_2_category": "{winner_archetype}",
-      "confidence": Float (0.0-1.0),
-      "reasoning": "String"
-    }}
-    """
+@app.post("/assessment/api/reality")
+async def assessment_api_reality(request: Request, payload: dict, db: Session = Depends(get_db)):
+    user = get_current_user(request, db)
+    if not user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+        
+    result = db.query(models.AssessmentResult).filter(models.AssessmentResult.user_id == user.id).first()
+    if not result or result.student_type != "12th":
+        raise HTTPException(status_code=404, detail="Assessment not found or invalid type")
+        
+    ratings = payload.get("ratings", [])
+    result.reality_answers = ratings
+    
+    p1_vector = json.loads(result.personality) if result.personality else {}
+    reality_data = assessment_engine.load_g12_reality_cards()
+    metrics = assessment_engine.calculate_reality_dissonance_g12(p1_vector, ratings, reality_data)
+    
+    result.current_phase = 3
+    if result.raw_answers:
+        curr_raw = dict(result.raw_answers)
+        curr_raw["reality_dissonance"] = metrics
+        result.raw_answers = curr_raw
+    else:
+        result.raw_answers = {"reality_dissonance": metrics}
+        
+    db.commit()
+    return {"status": "success", "next_phase": 3}
 
-    # 3. Call Gemini
-    if not GEMINI_API_KEY:
-        # Fallback Mock for Demo if Key Missing
-        result_data = {
-            "personality": "Ambivert",
-            "goal_status": "Exploring",
-            "phase_2_category": winner_archetype,
-            "confidence": 0.85,
-            "reasoning": f"Demo Mode: API Key missing. Categorical Analysis suggests {winner_archetype}."
+@app.post("/assessment/api/chat")
+async def assessment_api_chat(request: Request, payload: dict, db: Session = Depends(get_db)):
+    user = get_current_user(request, db)
+    if not user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+        
+    result = db.query(models.AssessmentResult).filter(models.AssessmentResult.user_id == user.id).first()
+    if not result:
+        raise HTTPException(status_code=404, detail="Assessment not found")
+        
+    student_type = result.student_type or "10th"
+    user_message = payload.get("message", "").strip()
+    
+    chat_history = result.chat_messages or []
+    
+    if len(chat_history) == 0 and not user_message:
+        if student_type == "10th":
+            first_q = assessment_engine.get_alex_response(0, "")
+        else:
+            questions = assessment_engine.load_g12_interview_questions()
+            first_q = assessment_engine.get_alex_response_g12(0, questions.get("interview_questions", []))
+            
+        chat_history.append({"role": "ai", "content": first_q})
+        result.chat_messages = chat_history
+        result.chat_turn = 0
+        db.commit()
+        return {"status": "success", "message": first_q, "chat_turn": 0, "phase_complete": False}
+        
+    chat_history.append({"role": "user", "content": user_message})
+    turn = result.chat_turn or 0
+    next_turn = turn + 1
+    
+    max_turns = 6 if student_type == "10th" else 5
+    
+    if next_turn >= max_turns:
+        result.chat_messages = chat_history
+        result.chat_turn = next_turn
+        
+        if student_type == "10th":
+            riasec = assessment_engine.extract_riasec_vector(chat_history)
+            result.personality = json.dumps(riasec)
+            result.current_phase = 3
+        else:
+            identity = assessment_engine.analyze_identity_anchor_g12(chat_history)
+            if result.raw_answers:
+                curr_raw = dict(result.raw_answers)
+                curr_raw["identity_anchor"] = identity
+                result.raw_answers = curr_raw
+            else:
+                result.raw_answers = {"identity_anchor": identity}
+            result.current_phase = 4
+            
+        db.commit()
+        return {
+            "status": "success",
+            "message": "That was great! Ready for the next phase?",
+            "chat_turn": next_turn,
+            "phase_complete": True
         }
     else:
-        # Generate Analysis using Fallback Strategy
-        try:
-            clean_text = await generate_content_with_fallback(prompt)
-            result_data = json.loads(clean_text)
-        except Exception as e:
-            print(f"Analysis Error: {e}")
-            result_data = {
-                "phase_2_category": winner_archetype,
-                "personality": "Ambivert",
-                "goal_status": "Exploring",
-                "confidence": 0.5,
-                "reasoning": f"AI Analysis failed. Internal mapping suggests {winner_archetype}."
-            }
-
-    # 4. Save to DB
-    try:
-        existing_result = db.query(models.AssessmentResult).filter(models.AssessmentResult.user_id == user.id).first()
-        
-        if existing_result:
-            # Update existing
-            existing_result.phase_2_category = result_data.get("phase_2_category")
-            existing_result.personality = result_data.get("personality")
-            existing_result.goal_status = result_data.get("goal_status")
-            existing_result.confidence = result_data.get("confidence")
-            existing_result.reasoning = result_data.get("reasoning")
-            existing_result.raw_answers = user_answers_data # This overwrites phase 1 raw answers if any, but selected_class is separate column
+        if student_type == "10th":
+            next_q = assessment_engine.get_alex_response(next_turn, user_message)
         else:
-            # Create new
-            new_result = models.AssessmentResult(
-                user_id=user.id,
-                phase_2_category=result_data.get("phase_2_category"),
-                personality=result_data.get("personality"),
-                goal_status=result_data.get("goal_status"),
-                confidence=result_data.get("confidence"),
-                reasoning=result_data.get("reasoning"),
-                raw_answers=user_answers_data
-            )
-            db.add(new_result)
-        
+            questions = assessment_engine.load_g12_interview_questions()
+            next_q = assessment_engine.get_alex_response_g12(next_turn, questions.get("interview_questions", []))
+            
+        chat_history.append({"role": "ai", "content": next_q})
+        result.chat_messages = chat_history
+        result.chat_turn = next_turn
         db.commit()
-    except Exception as e:
-        print(f"Assessment save error: {e}")
-        db.rollback()
-        raise HTTPException(status_code=500, detail="Failed to save assessment results. Please try again.")
+        
+        return {"status": "success", "message": next_q, "chat_turn": next_turn, "phase_complete": False}
 
-    return RedirectResponse(url="/dashboard", status_code=status.HTTP_302_FOUND)
+@app.post("/assessment/api/proxy")
+async def assessment_api_proxy(request: Request, payload: dict, db: Session = Depends(get_db)):
+    user = get_current_user(request, db)
+    if not user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+        
+    result = db.query(models.AssessmentResult).filter(models.AssessmentResult.user_id == user.id).first()
+    if not result:
+        raise HTTPException(status_code=404, detail="Assessment not found")
+        
+    answers = payload.get("answers", [])
+    result.proxy_answers = answers
+    
+    student_type = result.student_type or "10th"
+    if student_type == "10th":
+        result.current_phase = 4
+    else:
+        env = assessment_engine.calculate_environmental_context_g12(answers)
+        if result.raw_answers:
+            curr_raw = dict(result.raw_answers)
+            curr_raw["environmental_context"] = env
+            result.raw_answers = curr_raw
+        else:
+            result.raw_answers = {"environmental_context": env}
+        result.current_phase = 5
+        
+    db.commit()
+    return {"status": "success", "next_phase": result.current_phase}
+
+@app.post("/assessment/api/scenarios")
+async def assessment_api_scenarios(request: Request, payload: dict, db: Session = Depends(get_db)):
+    user = get_current_user(request, db)
+    if not user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+        
+    result = db.query(models.AssessmentResult).filter(models.AssessmentResult.user_id == user.id).first()
+    if not result or result.student_type != "10th":
+        raise HTTPException(status_code=404, detail="Assessment not found or invalid type")
+        
+    answers = payload.get("answers", [])
+    result.scenario_answers = answers
+    result.current_phase = 5
+    db.commit()
+    
+    return {"status": "success", "next_phase": 5}
+
+@app.post("/assessment/api/noise-cancel")
+async def assessment_api_noise_cancel(request: Request, db: Session = Depends(get_db)):
+    user = get_current_user(request, db)
+    if not user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+        
+    result = db.query(models.AssessmentResult).filter(models.AssessmentResult.user_id == user.id).first()
+    if not result or result.student_type != "12th":
+        raise HTTPException(status_code=404, detail="Assessment not found or invalid type")
+        
+    raw = dict(result.raw_answers) if result.raw_answers else {}
+    
+    p1 = {"computed_latent_vector": json.loads(result.personality) if result.personality else {}}
+    p2 = raw.get("reality_dissonance", {})
+    p3 = raw.get("identity_anchor", {})
+    p4 = raw.get("environmental_context", {})
+    
+    noise_metrics = assessment_engine.calculate_noise_cancellation_g12(p1, p2, p3, p4)
+    
+    raw["noise_cancellation"] = noise_metrics
+    result.raw_answers = raw
+    result.current_phase = 6
+    db.commit()
+    
+    return {"status": "success", "noise_metrics": noise_metrics, "next_phase": 6}
+
+@app.post("/assessment/api/worldview")
+async def assessment_api_worldview(request: Request, payload: dict, db: Session = Depends(get_db)):
+    user = get_current_user(request, db)
+    if not user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+        
+    result = db.query(models.AssessmentResult).filter(models.AssessmentResult.user_id == user.id).first()
+    if not result or result.student_type != "12th":
+        raise HTTPException(status_code=404, detail="Assessment not found or invalid type")
+        
+    iq_res = payload.get("iq", [])
+    eq_res = payload.get("eq", [])
+    
+    result.worldview_answers = {"iq": iq_res, "eq": eq_res}
+    
+    w_metrics = assessment_engine.calculate_worldview_metrics_g12(iq_res, eq_res)
+    
+    raw = dict(result.raw_answers) if result.raw_answers else {}
+    raw["worldview_metrics"] = w_metrics
+    result.raw_answers = raw
+    result.current_phase = 7
+    db.commit()
+    
+    return {"status": "success", "next_phase": 7}
+
+@app.post("/assessment/api/future-self")
+async def assessment_api_future_self(request: Request, payload: dict, db: Session = Depends(get_db)):
+    user = get_current_user(request, db)
+    if not user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+        
+    result = db.query(models.AssessmentResult).filter(models.AssessmentResult.user_id == user.id).first()
+    if not result or result.student_type != "12th":
+        raise HTTPException(status_code=404, detail="Assessment not found or invalid type")
+        
+    ratings = payload.get("ratings", [])
+    result.future_self_answers = ratings
+    
+    raw = dict(result.raw_answers) if result.raw_answers else {}
+    p1 = json.loads(result.personality) if result.personality else {}
+    p3 = raw.get("identity_anchor", {})
+    p4 = raw.get("environmental_context", {})
+    p6 = raw.get("worldview_metrics", {})
+    
+    rec_metrics = assessment_engine.calculate_future_reconciliation_g12(ratings, p1, p3, p4, p6)
+    
+    raw["future_reconciliation"] = rec_metrics
+    result.raw_answers = raw
+    result.current_phase = 8
+    db.commit()
+    
+    return {"status": "success", "next_phase": 8}
+
+@app.post("/assessment/api/compile")
+async def assessment_api_compile(request: Request, db: Session = Depends(get_db)):
+    user = get_current_user(request, db)
+    if not user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+        
+    result = db.query(models.AssessmentResult).filter(models.AssessmentResult.user_id == user.id).first()
+    if not result:
+        raise HTTPException(status_code=404, detail="Assessment not found")
+        
+    student_type = result.student_type or "10th"
+    
+    try:
+        if student_type == "10th":
+            riasec_data = json.loads(result.personality) if result.personality else {}
+            riasec_vec = riasec_data.get("riasec_vector", {"R": 5, "I": 5, "A": 5, "S": 5, "E": 5, "C": 5})
+            
+            swipes = result.telemetry_logs or []
+            telemetry_metrics = assessment_engine.calculate_telemetry_metrics(swipes, "10th")
+            latent_profile = telemetry_metrics.get("latent_profile", {})
+            
+            identity = {"x": 0.5} 
+            
+            rec = assessment_engine.recommend_10th_stream(latent_profile, riasec_data, identity)
+            
+            result.recommended_stream = rec.get("recommended_stream")
+            result.stream_scores = {
+                "Science": round(latent_profile.get("LOG", 0.5)*40 + latent_profile.get("TEC", 0.5)*30 + riasec_vec.get("I", 5)*3),
+                "Commerce": round(latent_profile.get("FIN", 0.5)*40 + latent_profile.get("DET", 0.5)*30 + riasec_vec.get("C", 5)*3),
+                "Humanities": round(latent_profile.get("ALT", 0.5)*40 + latent_profile.get("AES", 0.5)*30 + riasec_vec.get("S", 5)*3)
+            }
+            tot_score = sum(result.stream_scores.values()) or 1
+            result.stream_scores = {k: min(99, max(10, int(v * 100 / tot_score))) for k, v in result.stream_scores.items()}
+            
+            details = rec.get("stream_details", {})
+            result.final_analysis = details.get("justification")
+            result.stream_pros = details.get("subjects", [])
+            result.stream_cons = details.get("skills", [])
+            result.assessment_report = rec
+            result.confidence = telemetry_metrics.get("consistency_index", 0.88)
+            
+            result.phase_2_category = result.recommended_stream
+            result.personality = riasec_data.get("dominant_trait", "Artistic")
+            result.goal_status = "Stream recommendation computed."
+            result.reasoning = details.get("justification")
+            
+        else:
+            raw = dict(result.raw_answers) if result.raw_answers else {}
+            
+            p1 = {"computed_latent_vector": json.loads(result.personality) if result.personality else {}}
+            p2 = raw.get("reality_dissonance", {})
+            p3 = raw.get("identity_anchor", {})
+            p4 = raw.get("environmental_context", {})
+            p5 = raw.get("noise_cancellation", {})
+            p6 = raw.get("worldview_metrics", {})
+            p7 = raw.get("future_reconciliation", {})
+            
+            career_db_path = os.path.join(assessment_engine.DATA_DIR, "grade_12", "career_database.json")
+            if os.path.exists(career_db_path):
+                with open(career_db_path, "r", encoding="utf-8") as f:
+                    career_db = json.load(f)
+            else:
+                career_db = {}
+                
+            report = assessment_engine.generate_final_report_g12(p1, p2, p3, p4, p5, p6, p7, career_db)
+            result.assessment_report = report
+            
+            paths = report.get("career_paths", {})
+            p1_det = paths.get("path_1_analytical_fit", {})
+            p2_det = paths.get("path_2_alternate_angle", {})
+            p3_det = paths.get("path_3_gut_passion_path", {})
+            
+            result.stream_pros = [
+                {"title": p1_det.get("career_cluster", "Analytical Match"), "reason": p1_det.get("honest_challenge"), "pros": p1_det.get("specializations", []), "cons": p1_det.get("required_entrance_exams", [])},
+                {"title": p2_det.get("career_cluster", "Alternate Path"), "reason": p2_det.get("honest_challenge"), "pros": p2_det.get("specializations", []), "cons": p2_det.get("required_entrance_exams", [])},
+                {"title": p3_det.get("career_cluster", "Passion Path"), "reason": p3_det.get("honest_challenge"), "pros": p3_det.get("specializations", []), "cons": p3_det.get("required_entrance_exams", [])}
+            ]
+            
+            result.recommended_stream = None
+            result.phase_2_category = p1_det.get("career_cluster", "Strategic Builder")
+            result.personality = p3.get("intrinsic_vs_extrinsic_balance", {}).get("anonymized_preference_core_theme", "Autonomy Focus")
+            result.goal_status = "Optimal career trajectories computed."
+            result.confidence = report.get("system_diagnostics", {}).get("system_prediction_confidence_coefficient", 0.88)
+            result.reasoning = report.get("system_diagnostics", {}).get("noise_report_summary", "")
+            
+        db.commit()
+        return {"status": "success", "redirect": "/assessment/result"}
+        
+    except Exception as e:
+        print(f"Compilation error: {e}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to compile report: {str(e)}")
 
 @app.get("/assessment/result", response_class=HTMLResponse)
 async def assessment_result(request: Request, db: Session = Depends(get_db)):
@@ -2758,21 +3070,7 @@ from data.questions_phase3 import CATEGORY_SCENARIOS_MAP
 
 @app.get("/assessment/phase3", response_class=HTMLResponse)
 async def assessment_phase3(request: Request, db: Session = Depends(get_db)):
-    user = get_current_user(request, db)
-    if not user:
-        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
-    
-    # Get user's Phase 2 result
-    result = db.query(models.AssessmentResult).filter(models.AssessmentResult.user_id == user.id).first()
-    if not result or not result.phase_2_category:
-        return RedirectResponse(url="/assessment/result", status_code=status.HTTP_302_FOUND)
-
-    category = result.phase_2_category
-    
-    return templates.TemplateResponse(request=request, name="assessment_phase3_v2.html", context={
-        "user": user, 
-        "category_name": category
-    })
+    return RedirectResponse(url="/assessment", status_code=status.HTTP_302_FOUND)
 
 @app.post("/assessment/phase3/submit")
 async def assessment_phase3_submit(
