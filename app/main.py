@@ -25,16 +25,6 @@ from sqlalchemy.orm import Session, joinedload
 from .database import SessionLocal, engine, get_db
 import bcrypt
 import re
-import datetime
-import asyncio
-import os
-import shutil
-from . import email_utils
-import google.generativeai as genai
-from groq import Groq, AsyncGroq
-from dotenv import load_dotenv
-from starlette.middleware.sessions import SessionMiddleware
-from authlib.integrations.starlette_client import OAuth
 import razorpay
 from . import models
 from .email_utils import (
@@ -158,8 +148,6 @@ async def check_content_moderation(text_content: str):
         print(f"Moderation Error: {e}")
         return False, "None"
 
-from . import models
-from .database import SessionLocal, engine, get_db
 from data.questions_data import questions
 from data.questions_12th import questions_12th
 from data.questions_above_12th import questions_above_12th

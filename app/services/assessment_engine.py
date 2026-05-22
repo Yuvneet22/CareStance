@@ -599,14 +599,85 @@ def extract_intake_metadata(turn: int, text: str) -> Dict:
         result["name"] = clean.title() if clean else text.title()
         
     elif turn == 2:
+        # Detect college year context (e.g., "3rd year", "2nd year of btech")
+        # vs school grade/class (e.g., "12th class", "grade 11")
+        college_year_keywords = ["year", "yr", "semester", "sem", "btech", "b.tech", "bcom",
+                                  "b.com", "bsc", "b.sc", "ba", "b.a", "bba", "bca", "mba",
+                                  "mca", "undergraduate", "undergrad", "postgraduate", "postgrad",
+                                  "college", "university", "degree", "engineering", "graduation",
+                                  "pursuing", "enrolled"]
+        ordinal_word_map = {"first": 1, "second": 2, "third": 3, "fourth": 4, "fifth": 5,
+                            "final": 4, "last": 4, "fresher": 1, "freshman": 1, "sophomore": 2,
+                            "junior": 3, "senior": 4}
+
+        is_college_context = any(kw in text_lower for kw in college_year_keywords)
+
+        # Check for ordinal word patterns (e.g., "third year", "first year")
+        detected_year = None
+        for word, val in ordinal_word_map.items():
+            if word in text_lower:
+                detected_year = val
+                break
+
         nums = re.findall(r'\d+', text)
-        if nums:
-            result["grade"] = int(nums[0])
+
+        if is_college_context or detected_year:
+            # College year context: convert year number to effective grade (12 + year)
+            if detected_year:
+                result["grade"] = 12 + detected_year
+            elif nums:
+                year_num = int(nums[0])
+                # If number is small (1-6), treat as college year
+                if year_num <= 6:
+                    result["grade"] = 12 + year_num
+                else:
+                    result["grade"] = year_num
+        elif nums:
+            grade_val = int(nums[0])
+            # Smart detection: "3rd year" pattern -> college year
+            has_year_suffix = bool(re.search(r'\d+\s*(?:st|nd|rd|th)\s*(?:year|yr)', text_lower))
+            if grade_val <= 6 and has_year_suffix:
+                result["grade"] = 12 + grade_val
+            else:
+                result["grade"] = grade_val
+
+        # Handle degree-level mentions without explicit year number
+        if "grade" not in result:
+            if any(kw in text_lower for kw in ["masters", "master's", "mtech", "m.tech", "msc",
+                                                 "m.sc", "pg", "post graduate"]):
+                result["grade"] = 17
+            elif any(kw in text_lower for kw in ["phd", "ph.d", "doctorate", "doctoral"]):
+                result["grade"] = 18
+            elif any(kw in text_lower for kw in ["graduate", "graduated", "passed out", "alumni"]):
+                result["grade"] = 16
             
     elif turn == 3:
-        science_kws = ["science", "pcmb", "pcm", "pcb", "physics", "chemistry", "bio", "math", "medical"]
-        commerce_kws = ["commerce", "business", "accounts", "economics", "finance"]
-        arts_kws = ["arts", "humanities", "history", "poli", "sociology", "psychology", "design"]
+        science_kws = [
+            "science", "pcmb", "pcm", "pcb", "physics", "chemistry", "bio", "math", "medical",
+            "cse", "computer science", "computer engineering", "software", "it", "information technology",
+            "ece", "eee", "electronics", "electrical", "mechanical", "civil", "chemical",
+            "btech", "b.tech", "mtech", "m.tech", "engineering", "bsc", "b.sc", "msc", "m.sc",
+            "ai", "ml", "machine learning", "artificial intelligence", "data science", "cyber",
+            "biotech", "biotechnology", "bioinformatics", "pharmacy", "pharma", "mbbs", "bds",
+            "nursing", "agriculture", "environmental", "robotics", "aerospace", "automobile",
+            "neet", "jee", "iit", "nit", "iiit", "coding", "programming"
+        ]
+        commerce_kws = [
+            "commerce", "business", "accounts", "economics", "finance",
+            "bcom", "b.com", "mcom", "m.com", "bba", "mba", "ca", "chartered",
+            "cma", "cs", "company secretary", "icai", "banking", "insurance",
+            "marketing", "management", "entrepreneurship", "startup", "trade",
+            "accounting", "taxation", "audit", "stock", "investment"
+        ]
+        arts_kws = [
+            "arts", "humanities", "history", "poli", "sociology", "psychology", "design",
+            "ba", "b.a", "ma", "m.a", "literature", "english", "hindi", "philosophy",
+            "journalism", "mass comm", "media", "film", "fine arts", "visual arts",
+            "law", "llb", "clat", "education", "b.ed", "social work", "anthropology",
+            "liberal", "geography", "public admin", "international relations",
+            "fashion", "interior", "graphic", "animation", "photography", "music",
+            "theatre", "performing arts", "creative writing"
+        ]
         
         if any(k in text_lower for k in science_kws):
             result["current_stream"] = "Science"
@@ -887,6 +958,8 @@ def reconcile_results(ann_predictions: List[Dict], feasibility: Dict, identity: 
         return {"refined_matches": refined[:3]}
 
     # O*NET-based multi-stage matchmaking
+    # NOTE: The occupations table has no RIASEC columns.
+    # We derive RIASEC-proxy scores from work_styles and work_values per occupation.
     r_vector = riasec.get("riasec_vector", {"R": 5, "I": 5, "A": 5, "S": 5, "E": 5, "C": 5})
     
     conn = sqlite3.connect(db_path)
@@ -903,13 +976,39 @@ def reconcile_results(ann_predictions: List[Dict], feasibility: Dict, identity: 
     r_user = np.array(r_user, dtype=np.float32)
     r_user_norm = r_user / (np.linalg.norm(r_user) + 1e-9)
     
-    cursor.execute("SELECT soc_code, title, description, job_zone, realistic, investigative, artistic, social, enterprising, conventional FROM occupations")
+    # Fetch all occupations (basic info only)
+    cursor.execute("SELECT soc_code, title, description, job_zone FROM occupations")
     rows = cursor.fetchall()
+    
+    # Pre-load work_styles and work_values for RIASEC proxy derivation
+    cursor.execute("SELECT soc_code, element_name, impact FROM work_styles")
+    all_ws = {}
+    for sc, el, imp in cursor.fetchall():
+        all_ws.setdefault(sc, {})[el] = imp if imp is not None else 0.0
+    
+    cursor.execute("SELECT soc_code, element_name, extent FROM work_values")
+    all_wv = {}
+    for sc, el, ext in cursor.fetchall():
+        all_wv.setdefault(sc, {})[el] = ext if ext is not None else 3.0
+    
+    # Holland-type RIASEC proxy mappings from work_styles/work_values
+    def derive_riasec(soc_code):
+        ws = all_ws.get(soc_code, {})
+        wv = all_wv.get(soc_code, {})
+        r = (ws.get("Dependability", 0) + ws.get("Attention to Detail", 0)) / 2.0
+        i = (ws.get("Analytical Thinking", 0) + ws.get("Innovation", 0)) / 2.0
+        a = (ws.get("Innovation", 0) + ws.get("Independence", 0)) / 2.0
+        s = (ws.get("Concern for Others", 0) + ws.get("Social Orientation", 0) + ws.get("Cooperation", 0)) / 3.0
+        e = (ws.get("Leadership", 0) + ws.get("Initiative", 0) + wv.get("Achievement", 3.0) / 7.0 * 3.0) / 3.0
+        c = (ws.get("Attention to Detail", 0) + ws.get("Dependability", 0) + ws.get("Integrity", 0)) / 3.0
+        # Normalize to 1-10 scale (work_styles impact is roughly -1.42 to 3.0)
+        def norm(v): return max(1.0, min(10.0, (v + 1.5) * 2.0 + 1.0))
+        return [norm(r), norm(i), norm(a), norm(s), norm(e), norm(c)]
     
     scored_occupations = []
     for row in rows:
-        soc_code, title, description, job_zone, r, i, a, s, e, c = row
-        r_vals = [v if v is not None else 5.0 for v in (r, i, a, s, e, c)]
+        soc_code, title, description, job_zone = row
+        r_vals = derive_riasec(soc_code)
         r_occ = np.array(r_vals, dtype=np.float32)
         r_occ_norm = r_occ / (np.linalg.norm(r_occ) + 1e-9)
         
