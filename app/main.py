@@ -21,7 +21,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse,
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import selectinload, joinedload
 from sqlalchemy import select, and_, or_, func
 from .database import AsyncSessionLocal, engine, get_db, Base
 import re
@@ -527,7 +527,7 @@ async def get_current_user(request: Request, db: AsyncSession = Depends(get_db))
         # Fallback to local SQL if not found in Appwrite
         uid = int(user_id)
         stmt = select(models.User).options(selectinload(models.User.assessment)).where(models.User.id == uid)
-        result = db.execute(stmt)
+        result = await db.execute(stmt)
         return result.scalars().first()
     except Exception: return None
 
@@ -1606,7 +1606,6 @@ async def dashboard(request: Request, db: AsyncSession = Depends(get_db)):
         )).scalars().all()
 
         # --- Overview Panel Metrics ---
-        from sqlalchemy import func
         from datetime import date, timedelta
         
         today = date.today()
@@ -1783,11 +1782,11 @@ async def admin_dashboard(
         pending_counsellors = (await db.execute(select(models.CounsellorProfile).where(models.CounsellorProfile.verification_status == "pending"))).scalars().all()
         
         # ─── Optimized Counsellor Stats (Single Query) ───────────────────
-        from sqlalchemy import func as sql_func
+
         
         # Get all completed sessions count per counsellor
         _completed_rows = (await db.execute(
-            select(models.Appointment.counsellor_id, sql_func.count(models.Appointment.id).label("count"))
+            select(models.Appointment.counsellor_id, func.count(models.Appointment.id).label("count"))
             .where(models.Appointment.status == "completed")
             .group_by(models.Appointment.counsellor_id)
         )).all()
@@ -1795,7 +1794,7 @@ async def admin_dashboard(
 
         # Get total sessions count per counsellor
         _total_rows = (await db.execute(
-            select(models.Appointment.counsellor_id, sql_func.count(models.Appointment.id).label("count"))
+            select(models.Appointment.counsellor_id, func.count(models.Appointment.id).label("count"))
             .group_by(models.Appointment.counsellor_id)
         )).all()
         total_map = {row.counsellor_id: row.count for row in _total_rows}
@@ -1819,17 +1818,17 @@ async def admin_dashboard(
             
             # Using scalars directly for performance
             session_revenue = (await db.execute(
-                select(sql_func.sum(models.Payment.amount)).where(models.Payment.status == "captured")
+                select(func.sum(models.Payment.amount)).where(models.Payment.status == "captured")
             )).scalar() or 0.0
 
             sim_revenue = (await db.execute(
-                select(sql_func.sum(models.SimulationPayment.amount))
+                select(func.sum(models.SimulationPayment.amount))
             )).scalar() or 0.0
             
             total_revenue = session_revenue + sim_revenue
 
             total_counselor_payouts = (await db.execute(
-                select(sql_func.sum(models.Transfer.amount)).where(models.Transfer.status == "processed")
+                select(func.sum(models.Transfer.amount)).where(models.Transfer.status == "processed")
             )).scalar() or 0.0
 
             platform_commission = session_revenue - total_counselor_payouts + sim_revenue
@@ -3215,7 +3214,7 @@ async def phase3_chat(request: Request, chat_req: Phase3ChatRequest, db: AsyncSe
 
     result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
     if not result or not result.phase_2_category:
-        return jsonify({"error": "No phase 2 category found"})
+        return JSONResponse({"error": "No phase 2 category found"})
     
     from fastapi.responses import JSONResponse
     category = result.phase_2_category
